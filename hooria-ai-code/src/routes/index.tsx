@@ -40,7 +40,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
-import hooriaLogo from "@/assets/hooria-logo.png.asset.json";
+import hooriaLogo from "@/assets/hooriaAI_icon_only.png";
 import heroBgVideo from "@/assets/hero-bg-ai.mp4.asset.json";
 
 export const Route = createFileRoute("/")({
@@ -120,7 +120,7 @@ function Nav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <a href="#top" className="flex items-center gap-2.5">
           <img
-            src={hooriaLogo.url}
+            src={hooriaLogo}
             alt="Hooria AI logo"
             className="h-9 w-9 rounded-lg"
           />
@@ -397,12 +397,9 @@ function Instructor() {
     { icon: GraduationCap, title: "Academia", desc: "Former AI lab instructor and teaching assistant at FAST NUCES; national AI trainer at NAVTTC." },
   ];
   const experience = [
-    { role: "Founder & Lead Instructor", org: "Hooria AI", note: "Building the next generation of AI engineers through live, hands-on education." },
-    { role: "AI Lab Instructor & Teaching Assistant", org: "FAST NUCES", note: "Designed and delivered undergraduate AI labs and mentored student projects." },
-    { role: "AI Instructor", org: "NAVTTC", note: "Trained national cohorts in generative AI, Python and AI agents." },
-    { role: "AI Engineer", org: "Malind Tech", note: "Shipped AI agents and business automation for international clients." },
-    { role: "AI Engineer", org: "Knowa Tech", note: "Led research-driven ML and AI work on a global bioinformatics project." },
-    { role: "AI Engineer", org: "Vaival Technologies", note: "Built generative AI products from prototype to production." },
+    { value: "1+", label: "Year in Industry" },
+    { value: "2+", label: "Years in Academia" },
+    { value: "150+", label: "Students Mentored" },
   ];
   const stack = ["Python", "OpenAI / GPT", "LangChain", "RAG", "FastAPI", "TensorFlow", "PyTorch", "OpenCV", "YOLO", "n8n", "Make.com", "Docker"];
 
@@ -461,17 +458,14 @@ function Instructor() {
             <Reveal delay={100}>
               <div className="rounded-2xl border border-border/60 bg-surface/30 p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Experience</p>
-                <ul className="mt-4 space-y-3.5">
+                <div className="mt-4 grid grid-cols-3 gap-4 text-center">
                   {experience.map((e) => (
-                    <li key={e.org + e.role} className="flex gap-3">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" />
-                      <span className="text-sm">
-                        <span className="font-semibold">{e.role}</span>
-                        <span className="text-muted-foreground"> · {e.org} — {e.note}</span>
-                      </span>
-                    </li>
+                    <div key={e.label}>
+                      <div className="text-2xl sm:text-3xl font-bold text-gradient-brand">{e.value}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{e.label}</div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             </Reveal>
 
@@ -767,15 +761,25 @@ function Footer() {
   return (
     <footer className="border-t border-border/50 bg-surface/40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14">
-        <div className="grid gap-10 md:grid-cols-3">
+        <div className="grid gap-10 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <img src={hooriaLogo.url} alt="Hooria AI logo" className="h-9 w-9 rounded-lg" />
+              <img src={hooriaLogo} alt="Hooria AI logo" className="h-9 w-9 rounded-lg" />
               <span className="font-display text-lg font-bold">Hooria AI</span>
             </div>
             <p className="mt-3 text-sm text-muted-foreground max-w-xs">
               AI engineering education for the next generation of builders worldwide.
             </p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Navigate</p>
+            <nav className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
+              <a href="#programs" className="hover:text-foreground transition">Programs</a>
+              <a href="#curriculum" className="hover:text-foreground transition">Curriculum</a>
+              <a href="#instructor" className="hover:text-foreground transition">Instructor</a>
+              <a href="#portfolio" className="hover:text-foreground transition">Portfolio</a>
+              <a href="#faq" className="hover:text-foreground transition">FAQ</a>
+            </nav>
           </div>
           <div className="md:text-center">
             <p className="text-sm font-semibold">Follow along</p>
@@ -808,9 +812,8 @@ function Footer() {
             <p className="mt-2 text-sm text-muted-foreground">Remote · Worldwide</p>
           </div>
         </div>
-        <div className="mt-10 pt-6 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+        <div className="mt-10 pt-6 border-t border-border/40 flex justify-end text-xs text-muted-foreground">
           <p>© {new Date().getFullYear()} Hooria AI. All rights reserved.</p>
-          <p>Built for CS, AI, and IT students worldwide.</p>
         </div>
       </div>
     </footer>

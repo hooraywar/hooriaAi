@@ -1,0 +1,7 @@
+node_modules/
+.output/
+dist/
+.tanstack/
+supabase/.temp/
+.env
+.env.local
