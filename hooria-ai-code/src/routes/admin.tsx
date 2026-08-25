@@ -12,6 +12,10 @@ import { toast } from "sonner";
 import { ServicesManager } from "@/components/admin/ServicesManager";
 import { FaqsManager } from "@/components/admin/FaqsManager";
 import { SignupsTable } from "@/components/admin/SignupsTable";
+import { CurriculumPreviewManager } from "@/components/admin/CurriculumPreviewManager";
+import { CurriculumModulesManager } from "@/components/admin/CurriculumModulesManager";
+import { InstructorManager } from "@/components/admin/InstructorManager";
+import { PortfolioManager } from "@/components/admin/PortfolioManager";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -156,13 +160,33 @@ function AdminDashboard({ email }: { email: string }) {
       </header>
       <main className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
         <Tabs defaultValue="services">
-          <TabsList>
+          <TabsList className="h-auto flex-wrap justify-start">
             <TabsTrigger value="services">Programs</TabsTrigger>
+            <TabsTrigger value="curriculum-preview">
+              Curriculum Preview
+            </TabsTrigger>
+            <TabsTrigger value="curriculum-modules">
+              Curriculum Page
+            </TabsTrigger>
+            <TabsTrigger value="instructor">Instructor</TabsTrigger>
+            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
             <TabsTrigger value="faqs">FAQs</TabsTrigger>
             <TabsTrigger value="signups">Webinar Signups</TabsTrigger>
           </TabsList>
           <TabsContent value="services">
             <ServicesManager />
+          </TabsContent>
+          <TabsContent value="curriculum-preview">
+            <CurriculumPreviewManager />
+          </TabsContent>
+          <TabsContent value="curriculum-modules">
+            <CurriculumModulesManager />
+          </TabsContent>
+          <TabsContent value="instructor">
+            <InstructorManager />
+          </TabsContent>
+          <TabsContent value="portfolio">
+            <PortfolioManager />
           </TabsContent>
           <TabsContent value="faqs">
             <FaqsManager />

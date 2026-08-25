@@ -49,8 +49,24 @@ export const Route = createFileRoute("/")({
 
 // ---------- Icon registry (values editable in the DB) ----------
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Sparkles, Rocket, BookOpen, Zap, Users, Cpu, Boxes, Bot, Workflow,
-  GraduationCap, Trophy, BrainCircuit, Code2, Database, MessagesSquare,
+  Sparkles,
+  Rocket,
+  BookOpen,
+  Zap,
+  Users,
+  Cpu,
+  Boxes,
+  Bot,
+  Workflow,
+  GraduationCap,
+  Trophy,
+  BrainCircuit,
+  Code2,
+  Database,
+  MessagesSquare,
+  Wand2,
+  Server,
+  Presentation,
 };
 
 // ---------- Types ----------
@@ -65,6 +81,36 @@ type Service = {
 };
 
 type Faq = { id: string; question: string; answer: string; sort_order: number };
+
+type CurriculumPreviewItem = {
+  id: string;
+  module_number: string;
+  title: string;
+  description: string;
+  sort_order: number;
+};
+
+type PortfolioItem = {
+  id: string;
+  title: string;
+  icon: string;
+  tag: string;
+  sort_order: number;
+};
+
+type InstructorHighlight = { icon: string; title: string; desc: string };
+type InstructorStat = { value: string; label: string };
+type InstructorProfile = {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  image_url: string;
+  linkedin_url: string;
+  highlights: InstructorHighlight[];
+  stats: InstructorStat[];
+  stack: string[];
+};
 
 // ---------- Fetchers ----------
 async function fetchServices(): Promise<Service[]> {
@@ -85,8 +131,59 @@ async function fetchFaqs(): Promise<Faq[]> {
   return data ?? [];
 }
 
+async function fetchCurriculumPreview(): Promise<CurriculumPreviewItem[]> {
+  const { data, error } = await supabase
+    .from("curriculum_preview")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function fetchPortfolioItems(): Promise<PortfolioItem[]> {
+  const { data, error } = await supabase
+    .from("portfolio_items")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function fetchInstructor(): Promise<InstructorProfile | null> {
+  const { data, error } = await supabase
+    .from("instructor")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id,
+    name: data.name,
+    role: data.role,
+    bio: data.bio,
+    image_url: data.image_url,
+    linkedin_url: data.linkedin_url,
+    highlights: Array.isArray(data.highlights)
+      ? (data.highlights as unknown as InstructorHighlight[])
+      : [],
+    stats: Array.isArray(data.stats)
+      ? (data.stats as unknown as InstructorStat[])
+      : [],
+    stack: Array.isArray(data.stack) ? (data.stack as unknown as string[]) : [],
+  };
+}
+
 // ---------- Reveal-on-scroll wrapper ----------
-function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+function Reveal({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
   const [visible, setVisible] = useState(false);
   const [ref, setRef] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -124,15 +221,27 @@ function Nav() {
             alt="Hooria AI logo"
             className="h-9 w-9 rounded-lg"
           />
-          <span className="font-display text-lg font-bold tracking-tight">Hooria AI</span>
+          <span className="font-display text-lg font-bold tracking-tight">
+            Hooria AI
+          </span>
         </a>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-          <a href="#programs" className="hover:text-foreground transition">Programs</a>
-          <a href="#curriculum" className="hover:text-foreground transition">Curriculum</a>
-          <a href="#instructor" className="hover:text-foreground transition">Instructor</a>
-          <a href="#portfolio" className="hover:text-foreground transition">Portfolio</a>
+          <a href="#programs" className="hover:text-foreground transition">
+            Programs
+          </a>
+          <a href="#curriculum" className="hover:text-foreground transition">
+            Curriculum
+          </a>
+          <a href="#instructor" className="hover:text-foreground transition">
+            Instructor
+          </a>
+          <a href="#portfolio" className="hover:text-foreground transition">
+            Portfolio
+          </a>
 
-          <a href="#faq" className="hover:text-foreground transition">FAQ</a>
+          <a href="#faq" className="hover:text-foreground transition">
+            FAQ
+          </a>
         </nav>
         <a
           href="#signup"
@@ -147,7 +256,10 @@ function Nav() {
 
 function Hero() {
   return (
-    <section id="top" className="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-28">
+    <section
+      id="top"
+      className="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-28"
+    >
       <video
         className="absolute inset-0 h-full w-full object-cover"
         src={heroBgVideo.url}
@@ -158,8 +270,10 @@ function Hero() {
         aria-hidden
       />
       <div className="absolute inset-0 bg-background/70" aria-hidden />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background" aria-hidden />
-
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background"
+        aria-hidden
+      />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 text-center">
         <Reveal>
@@ -175,7 +289,8 @@ function Hero() {
         </Reveal>
         <Reveal delay={200}>
           <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-muted-foreground">
-            Learn the AI skills companies are hiring for — build a real portfolio while you do it.
+            Learn the AI skills companies are hiring for — build a real
+            portfolio while you do it.
           </p>
         </Reveal>
         <Reveal delay={300}>
@@ -239,9 +354,13 @@ function RealityCheck() {
         </Reveal>
         <Reveal delay={200}>
           <p className="mx-auto mt-6 max-w-3xl text-base sm:text-lg text-muted-foreground leading-relaxed">
-            Anyone can prompt an AI and ship a demo. Few can understand the models, build systems that scale,
-            and solve problems that actually matter. The future belongs to people who know the fundamentals —
-            <span className="text-foreground font-medium"> Python, machine learning, and how AI really works.</span>
+            Anyone can prompt an AI and ship a demo. Few can understand the
+            models, build systems that scale, and solve problems that actually
+            matter. The future belongs to people who know the fundamentals —
+            <span className="text-foreground font-medium">
+              {" "}
+              Python, machine learning, and how AI really works.
+            </span>
           </p>
         </Reveal>
         <Reveal delay={300}>
@@ -271,22 +390,33 @@ function RealityCheck() {
 }
 
 function Programs() {
-  const { data: services = [], isLoading } = useQuery({ queryKey: ["services"], queryFn: fetchServices });
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ["services"],
+    queryFn: fetchServices,
+  });
   return (
     <section id="programs" className="py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="max-w-2xl mx-auto text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">Programs</p>
-          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">Pick your path into AI</h2>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
+            Programs
+          </p>
+          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
+            Pick your path into AI
+          </h2>
           <p className="mt-4 text-muted-foreground">
-            From a free webinar to the full engineering bootcamp — start where it makes sense for you.
+            From a free webinar to the full engineering bootcamp — start where
+            it makes sense for you.
           </p>
         </Reveal>
 
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {isLoading &&
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-64 rounded-2xl border border-border/60 bg-surface/50 animate-pulse" />
+              <div
+                key={i}
+                className="h-64 rounded-2xl border border-border/60 bg-surface/50 animate-pulse"
+              />
             ))}
           {services.map((s, i) => {
             const Icon = iconMap[s.icon] ?? Sparkles;
@@ -317,13 +447,20 @@ function Programs() {
                       >
                         <Icon className="h-5 w-5" />
                       </div>
-                      <h3 className={cn("mt-5 text-lg font-semibold", s.is_highlighted && "text-primary-foreground")}>
+                      <h3
+                        className={cn(
+                          "mt-5 text-lg font-semibold",
+                          s.is_highlighted && "text-primary-foreground",
+                        )}
+                      >
                         {s.title}
                       </h3>
                       <p
                         className={cn(
                           "mt-2 text-sm leading-relaxed",
-                          s.is_highlighted ? "text-primary-foreground/85" : "text-muted-foreground",
+                          s.is_highlighted
+                            ? "text-primary-foreground/85"
+                            : "text-muted-foreground",
                         )}
                       >
                         {s.description}
@@ -337,7 +474,9 @@ function Programs() {
                         )}
                       >
                         {s.price_label || "Contact us"}
-                        {s.is_highlighted && <ArrowRight className="h-3.5 w-3.5" />}
+                        {s.is_highlighted && (
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        )}
                       </div>
                     </div>
                   );
@@ -360,16 +499,32 @@ function Programs() {
 
 function WhyUs() {
   const items = [
-    { icon: Boxes, title: "Real Projects, Not Just Theory", desc: "Every module ends with something shippable. You leave with a GitHub, not a certificate PDF." },
-    { icon: Users, title: "Live Cohort-Based Learning", desc: "Two live sessions per week, small groups, direct instructor access. No dead Slack channels." },
-    { icon: Trophy, title: "Freelance-Ready Portfolio", desc: "By demo day you can charge for RAG, agents, and automations. We show you how to land the first client." },
+    {
+      icon: Boxes,
+      title: "Real Projects, Not Just Theory",
+      desc: "Every module ends with something shippable. You leave with a GitHub, not a certificate PDF.",
+    },
+    {
+      icon: Users,
+      title: "Live Cohort-Based Learning",
+      desc: "Two live sessions per week, small groups, direct instructor access. No dead Slack channels.",
+    },
+    {
+      icon: Trophy,
+      title: "Freelance-Ready Portfolio",
+      desc: "By demo day you can charge for RAG, agents, and automations. We show you how to land the first client.",
+    },
   ];
   return (
     <section className="py-24 sm:py-32 bg-surface/30 border-y border-border/40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="max-w-2xl mx-auto text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">Why Hooria AI</p>
-          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">The bootcamp we wish we had</h2>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
+            Why Hooria AI
+          </p>
+          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
+            The bootcamp we wish we had
+          </h2>
         </Reveal>
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {items.map((it, i) => (
@@ -379,7 +534,9 @@ function WhyUs() {
                   <it.icon className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <h3 className="mt-5 text-lg font-semibold">{it.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{it.desc}</p>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  {it.desc}
+                </p>
               </div>
             </Reveal>
           ))}
@@ -390,26 +547,33 @@ function WhyUs() {
 }
 
 function Instructor() {
-  const highlights = [
-    { icon: Cpu, title: "AI Engineering", desc: "Production-grade ML, deep learning and generative AI systems built for real-world use cases." },
-    { icon: Bot, title: "AI Agents", desc: "Autonomous agents and workflow automation using OpenAI, LangChain, LangGraph and n8n." },
-    { icon: Boxes, title: "Computer Vision", desc: "Object detection, recognition and image processing pipelines deployed at scale." },
-    { icon: GraduationCap, title: "Academia", desc: "Former AI lab instructor and teaching assistant at FAST NUCES; national AI trainer at NAVTTC." },
-  ];
-  const experience = [
-    { value: "1+", label: "Year in Industry" },
-    { value: "2+", label: "Years in Academia" },
-    { value: "150+", label: "Students Mentored" },
-  ];
-  const stack = ["Python", "OpenAI / GPT", "LangChain", "RAG", "FastAPI", "TensorFlow", "PyTorch", "OpenCV", "YOLO", "n8n", "Make.com", "Docker"];
+  const { data: instructor, isLoading } = useQuery({
+    queryKey: ["instructor"],
+    queryFn: fetchInstructor,
+  });
+
+  if (isLoading) {
+    return (
+      <section id="instructor" className="py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="h-96 rounded-2xl border border-border/60 bg-surface/50 animate-pulse" />
+        </div>
+      </section>
+    );
+  }
+
+  if (!instructor) return null;
 
   return (
     <section id="instructor" className="py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">Leadership</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
+            Leadership
+          </p>
           <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
-            Built by an AI engineer, <span className="text-gradient-brand">for AI engineers</span>
+            Built by an AI engineer,{" "}
+            <span className="text-gradient-brand">for AI engineers</span>
           </h2>
         </Reveal>
 
@@ -417,52 +581,67 @@ function Instructor() {
           <Reveal>
             <div className="rounded-3xl border border-border/60 bg-surface/40 p-7">
               <img
-                src="https://hn-portfolio-nine.vercel.app/assets/hooria-hero-portrait-ZRD_SZf5.png"
-                alt="Hooria Najeeb, Founder and Lead Instructor at Hooria AI"
+                src={instructor.image_url}
+                alt={`${instructor.name}, ${instructor.role}`}
                 loading="lazy"
                 className="w-full rounded-2xl object-cover"
               />
-              <h3 className="mt-6 text-2xl font-bold">Hooria Najeeb</h3>
-              <p className="mt-1 text-sm text-brand-blue font-medium">Founder & Lead Instructor, Hooria AI</p>
-              <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
-                Hooria leads Hooria AI with a simple premise: the best way to learn AI engineering is to build real AI systems. She combines years of hands-on industry work with classroom experience to teach students how to ship, not just follow tutorials.
+              <h3 className="mt-6 text-2xl font-bold">{instructor.name}</h3>
+              <p className="mt-1 text-sm text-brand-blue font-medium">
+                {instructor.role}
               </p>
-              <div className="mt-6 flex flex-wrap gap-2.5">
-                <a
-                  href="https://www.linkedin.com/in/hooria-najeeb-631b411ba"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-1.5 text-xs hover:border-brand-blue transition"
-                >
-                  <Linkedin className="h-3.5 w-3.5" /> LinkedIn
-                </a>
-              </div>
+              <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
+                {instructor.bio}
+              </p>
+              {instructor.linkedin_url && (
+                <div className="mt-6 flex flex-wrap gap-2.5">
+                  <a
+                    href={instructor.linkedin_url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-1.5 text-xs hover:border-brand-blue transition"
+                  >
+                    <Linkedin className="h-3.5 w-3.5" /> LinkedIn
+                  </a>
+                </div>
+              )}
             </div>
           </Reveal>
 
           <div className="space-y-6">
             <div className="grid gap-5 sm:grid-cols-2">
-              {highlights.map((h, i) => (
-                <Reveal key={h.title} delay={i * 80}>
-                  <div className="h-full rounded-2xl border border-border/60 bg-background/50 p-6">
-                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-brand shadow-brand">
-                      <h.icon className="h-4.5 w-4.5 text-primary-foreground" />
+              {instructor.highlights.map((h, i) => {
+                const Icon = iconMap[h.icon] ?? Sparkles;
+                return (
+                  <Reveal key={h.title} delay={i * 80}>
+                    <div className="h-full rounded-2xl border border-border/60 bg-background/50 p-6">
+                      <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-brand shadow-brand">
+                        <Icon className="h-4.5 w-4.5 text-primary-foreground" />
+                      </div>
+                      <h4 className="mt-4 font-semibold">{h.title}</h4>
+                      <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                        {h.desc}
+                      </p>
                     </div>
-                    <h4 className="mt-4 font-semibold">{h.title}</h4>
-                    <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{h.desc}</p>
-                  </div>
-                </Reveal>
-              ))}
+                  </Reveal>
+                );
+              })}
             </div>
 
             <Reveal delay={100}>
               <div className="rounded-2xl border border-border/60 bg-surface/30 p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Experience</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Experience
+                </p>
                 <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-                  {experience.map((e) => (
+                  {instructor.stats.map((e) => (
                     <div key={e.label}>
-                      <div className="text-2xl sm:text-3xl font-bold text-gradient-brand">{e.value}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">{e.label}</div>
+                      <div className="text-2xl sm:text-3xl font-bold text-gradient-brand">
+                        {e.value}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {e.label}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -471,8 +650,11 @@ function Instructor() {
 
             <Reveal delay={200}>
               <div className="flex flex-wrap gap-2">
-                {stack.map((s) => (
-                  <span key={s} className="rounded-full border border-border/60 bg-background/50 px-3 py-1 text-xs text-muted-foreground">
+                {instructor.stack.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full border border-border/60 bg-background/50 px-3 py-1 text-xs text-muted-foreground"
+                  >
                     {s}
                   </span>
                 ))}
@@ -486,30 +668,39 @@ function Instructor() {
 }
 
 function Curriculum() {
-  const modules = [
-    { n: "01", title: "Foundations", desc: "Python for AI, LLM primitives, tokens, embeddings." },
-    { n: "02", title: "APIs & Prompt Engineering", desc: "OpenAI, Anthropic, function calling, structured outputs." },
-    { n: "03", title: "RAG Systems", desc: "Vector DBs, chunking, retrieval, hybrid search." },
-    { n: "04", title: "AI Agents", desc: "Tool use, planning, LangGraph, multi-agent orchestration." },
-    { n: "05", title: "Automation", desc: "n8n, Make, custom workflows, real business use-cases." },
-    { n: "06", title: "MLOps & Deployment", desc: "Docker, serverless, monitoring, cost control." },
-    { n: "07", title: "Capstone", desc: "Ship a full product end-to-end with a real user." },
-    { n: "08", title: "Demo Day", desc: "Present to hiring partners and the Hooria alumni network." },
-  ];
+  const { data: modules = [], isLoading } = useQuery({
+    queryKey: ["curriculum-preview"],
+    queryFn: fetchCurriculumPreview,
+  });
   return (
     <section id="curriculum" className="py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="max-w-2xl mx-auto text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">Curriculum</p>
-          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">8 modules. 10 weeks. Zero fluff.</h2>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
+            Curriculum
+          </p>
+          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
+            8 modules. 10 weeks. Zero fluff.
+          </h2>
         </Reveal>
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {isLoading &&
+            Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-36 rounded-2xl border border-border/60 bg-surface/50 animate-pulse"
+              />
+            ))}
           {modules.map((m, i) => (
-            <Reveal key={m.n} delay={i * 60}>
+            <Reveal key={m.id} delay={i * 60}>
               <div className="group relative h-full rounded-2xl border border-border/60 bg-surface/60 p-6 hover:border-brand-violet/50 transition">
-                <div className="font-display text-3xl font-bold text-gradient-brand">{m.n}</div>
+                <div className="font-display text-3xl font-bold text-gradient-brand">
+                  {m.module_number}
+                </div>
                 <h3 className="mt-3 text-base font-semibold">{m.title}</h3>
-                <p className="mt-1.5 text-sm text-muted-foreground">{m.desc}</p>
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  {m.description}
+                </p>
               </div>
             </Reveal>
           ))}
@@ -520,45 +711,65 @@ function Curriculum() {
 }
 
 function Portfolio() {
-  const outcomes = [
-    { icon: Wand2, title: "Prompt Library", tag: "Week 2" },
-    { icon: Server, title: "Deployed LLM API", tag: "Week 4" },
-    { icon: MessagesSquare, title: "RAG Chatbot", tag: "Week 5" },
-    { icon: Bot, title: "Autonomous Agent", tag: "Week 7" },
-    { icon: Workflow, title: "Business Automation", tag: "Week 8" },
-    { icon: Presentation, title: "Capstone Project", tag: "Week 10" },
-  ];
+  const { data: outcomes = [], isLoading } = useQuery({
+    queryKey: ["portfolio-items"],
+    queryFn: fetchPortfolioItems,
+  });
   return (
     <section id="portfolio" className="py-24 sm:py-32 relative overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-96 bg-hero-glow opacity-70" aria-hidden />
+      <div
+        className="absolute inset-x-0 top-0 h-96 bg-hero-glow opacity-70"
+        aria-hidden
+      />
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="max-w-2xl mx-auto text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">What You'll Ship</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
+            What You'll Ship
+          </p>
           <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
-            <span className="text-gradient-brand">6 portfolio projects</span> that get you hired
+            <span className="text-gradient-brand">6 portfolio projects</span>{" "}
+            that get you hired
           </h2>
           <p className="mt-4 text-muted-foreground">
-            These aren't tutorials. You'll deploy real code, on real infrastructure, with your name on it.
+            These aren't tutorials. You'll deploy real code, on real
+            infrastructure, with your name on it.
           </p>
         </Reveal>
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {outcomes.map((o, i) => (
-            <Reveal key={o.title} delay={i * 80}>
-              <div className="group relative h-full overflow-hidden rounded-2xl border border-border/60 bg-surface/70 p-7 transition hover:shadow-brand">
-                <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-brand-violet/20 blur-2xl transition group-hover:bg-brand-blue/30" aria-hidden />
-                <div className="relative flex items-start justify-between">
-                  <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-brand shadow-brand">
-                    <o.icon className="h-6 w-6 text-primary-foreground" />
+          {isLoading &&
+            Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-44 rounded-2xl border border-border/60 bg-surface/50 animate-pulse"
+              />
+            ))}
+          {outcomes.map((o, i) => {
+            const Icon = iconMap[o.icon] ?? Sparkles;
+            return (
+              <Reveal key={o.id} delay={i * 80}>
+                <div className="group relative h-full overflow-hidden rounded-2xl border border-border/60 bg-surface/70 p-7 transition hover:shadow-brand">
+                  <div
+                    className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-brand-violet/20 blur-2xl transition group-hover:bg-brand-blue/30"
+                    aria-hidden
+                  />
+                  <div className="relative flex items-start justify-between">
+                    <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-brand shadow-brand">
+                      <Icon className="h-6 w-6 text-primary-foreground" />
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {o.tag}
+                    </span>
                   </div>
-                  <span className="text-xs font-mono text-muted-foreground">{o.tag}</span>
+                  <h3 className="relative mt-5 text-lg font-semibold">
+                    {o.title}
+                  </h3>
+                  <div className="relative mt-3 flex items-center gap-1.5 text-xs text-brand-glow">
+                    <Check className="h-3.5 w-3.5" /> Deployed · Public · Yours
+                  </div>
                 </div>
-                <h3 className="relative mt-5 text-lg font-semibold">{o.title}</h3>
-                <div className="relative mt-3 flex items-center gap-1.5 text-xs text-brand-glow">
-                  <Check className="h-3.5 w-3.5" /> Deployed · Public · Yours
-                </div>
-              </div>
-            </Reveal>
-          ))}
+              </Reveal>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -567,22 +778,43 @@ function Portfolio() {
 
 function Testimonials() {
   const items = [
-    { name: "Ayesha K.", uni: "FAST NUCES", quote: "I built a RAG chatbot in week 5 that I now use at my internship. The projects are that real." },
-    { name: "Hamza R.", uni: "LUMS", quote: "Landed an AI engineer role before graduation. My capstone was literally my interview." },
-    { name: "Sara M.", uni: "UET Lahore", quote: "The live sessions and small group made it feel like a team, not a course." },
+    {
+      name: "Ayesha K.",
+      uni: "FAST NUCES",
+      quote:
+        "I built a RAG chatbot in week 5 that I now use at my internship. The projects are that real.",
+    },
+    {
+      name: "Hamza R.",
+      uni: "LUMS",
+      quote:
+        "Landed an AI engineer role before graduation. My capstone was literally my interview.",
+    },
+    {
+      name: "Sara M.",
+      uni: "UET Lahore",
+      quote:
+        "The live sessions and small group made it feel like a team, not a course.",
+    },
   ];
   return (
     <section className="py-24 sm:py-32 bg-surface/30 border-y border-border/40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="max-w-2xl mx-auto text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">Students</p>
-          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">From students, for students</h2>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
+            Students
+          </p>
+          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
+            From students, for students
+          </h2>
         </Reveal>
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {items.map((t, i) => (
             <Reveal key={t.name} delay={i * 100}>
               <figure className="h-full rounded-2xl border border-border/60 bg-background/50 p-7">
-                <blockquote className="text-base leading-relaxed text-foreground/90">"{t.quote}"</blockquote>
+                <blockquote className="text-base leading-relaxed text-foreground/90">
+                  "{t.quote}"
+                </blockquote>
                 <figcaption className="mt-6 flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-brand text-sm font-bold text-primary-foreground">
                     {t.name.charAt(0)}
@@ -611,7 +843,12 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         aria-expanded={open}
       >
         <span className="font-semibold text-foreground">{q}</span>
-        <ChevronDown className={cn("h-5 w-5 shrink-0 text-brand-blue transition-transform", open && "rotate-180")} />
+        <ChevronDown
+          className={cn(
+            "h-5 w-5 shrink-0 text-brand-blue transition-transform",
+            open && "rotate-180",
+          )}
+        />
       </button>
       <div
         className={cn(
@@ -620,7 +857,9 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         )}
       >
         <div className="overflow-hidden">
-          <p className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">{a}</p>
+          <p className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">
+            {a}
+          </p>
         </div>
       </div>
     </div>
@@ -628,18 +867,29 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 function Faqs() {
-  const { data: faqs = [], isLoading } = useQuery({ queryKey: ["faqs"], queryFn: fetchFaqs });
+  const { data: faqs = [], isLoading } = useQuery({
+    queryKey: ["faqs"],
+    queryFn: fetchFaqs,
+  });
   return (
     <section id="faq" className="py-24 sm:py-32">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <Reveal className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">FAQ</p>
-          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">Questions, Answered</h2>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
+            FAQ
+          </p>
+          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
+            Questions, Answered
+          </h2>
         </Reveal>
         <div className="mt-12 space-y-3">
-          {isLoading && Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-14 rounded-xl border border-border/60 bg-surface/50 animate-pulse" />
-          ))}
+          {isLoading &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-14 rounded-xl border border-border/60 bg-surface/50 animate-pulse"
+              />
+            ))}
           {faqs.map((f, i) => (
             <Reveal key={f.id} delay={i * 50}>
               <FaqItem q={f.question} a={f.answer} />
@@ -673,11 +923,15 @@ function SignupForm() {
       university: fd.get("university"),
     });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Please check your details");
+      toast.error(
+        parsed.error.issues[0]?.message ?? "Please check your details",
+      );
       return;
     }
     setLoading(true);
-    const { error } = await supabase.from("webinar_signups").insert(parsed.data);
+    const { error } = await supabase
+      .from("webinar_signups")
+      .insert(parsed.data);
     setLoading(false);
     if (error) {
       toast.error("Something went wrong. Please try again.");
@@ -695,30 +949,59 @@ function SignupForm() {
         </div>
         <h3 className="mt-5 text-2xl font-bold">You're on the list</h3>
         <p className="mt-2 text-muted-foreground">
-          We'll send the webinar link and a short intro to your WhatsApp and email in the next 24 hours.
+          We'll send the webinar link and a short intro to your WhatsApp and
+          email in the next 24 hours.
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-2xl border border-border/60 bg-surface/60 p-6 sm:p-8 space-y-4">
+    <form
+      onSubmit={onSubmit}
+      className="rounded-2xl border border-border/60 bg-surface/60 p-6 sm:p-8 space-y-4"
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="name">Full name</Label>
-          <Input id="name" name="name" placeholder="Ayesha Khan" required maxLength={120} />
+          <Input
+            id="name"
+            name="name"
+            placeholder="Ayesha Khan"
+            required
+            maxLength={120}
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" placeholder="you@example.com" required maxLength={200} />
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="you@example.com"
+            required
+            maxLength={200}
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="whatsapp">WhatsApp number</Label>
-          <Input id="whatsapp" name="whatsapp" placeholder="+92 300 1234567" required maxLength={40} />
+          <Input
+            id="whatsapp"
+            name="whatsapp"
+            placeholder="+92 300 1234567"
+            required
+            maxLength={40}
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="university">University</Label>
-          <Input id="university" name="university" placeholder="FAST NUCES, LUMS, UET..." required maxLength={200} />
+          <Input
+            id="university"
+            name="university"
+            placeholder="FAST NUCES, LUMS, UET..."
+            required
+            maxLength={200}
+          />
         </div>
       </div>
       <Button
@@ -741,12 +1024,16 @@ function Signup() {
       <div className="absolute inset-0 bg-hero-glow opacity-80" aria-hidden />
       <div className="relative mx-auto max-w-4xl px-4 sm:px-6">
         <Reveal className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">Free Webinar</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
+            Free Webinar
+          </p>
           <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
-            Save your seat for the <span className="text-gradient-brand">AI Career Kickstart</span>
+            Save your seat for the{" "}
+            <span className="text-gradient-brand">AI Career Kickstart</span>
           </h2>
           <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-            The exact roadmap, tools, and portfolio our students use to land AI engineering roles in 2026.
+            The exact roadmap, tools, and portfolio our students use to land AI
+            engineering roles in 2026.
           </p>
         </Reveal>
         <Reveal delay={150} className="mt-10">
@@ -764,29 +1051,58 @@ function Footer() {
         <div className="grid gap-10 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <img src={hooriaLogo} alt="Hooria AI logo" className="h-9 w-9 rounded-lg" />
+              <img
+                src={hooriaLogo}
+                alt="Hooria AI logo"
+                className="h-9 w-9 rounded-lg"
+              />
               <span className="font-display text-lg font-bold">Hooria AI</span>
             </div>
             <p className="mt-3 text-sm text-muted-foreground max-w-xs">
-              AI engineering education for the next generation of builders worldwide.
+              AI engineering education for the next generation of builders
+              worldwide.
             </p>
           </div>
           <div>
             <p className="text-sm font-semibold">Navigate</p>
             <nav className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
-              <a href="#programs" className="hover:text-foreground transition">Programs</a>
-              <a href="#curriculum" className="hover:text-foreground transition">Curriculum</a>
-              <a href="#instructor" className="hover:text-foreground transition">Instructor</a>
-              <a href="#portfolio" className="hover:text-foreground transition">Portfolio</a>
-              <a href="#faq" className="hover:text-foreground transition">FAQ</a>
+              <a href="#programs" className="hover:text-foreground transition">
+                Programs
+              </a>
+              <a
+                href="#curriculum"
+                className="hover:text-foreground transition"
+              >
+                Curriculum
+              </a>
+              <a
+                href="#instructor"
+                className="hover:text-foreground transition"
+              >
+                Instructor
+              </a>
+              <a href="#portfolio" className="hover:text-foreground transition">
+                Portfolio
+              </a>
+              <a href="#faq" className="hover:text-foreground transition">
+                FAQ
+              </a>
             </nav>
           </div>
           <div className="md:text-center">
             <p className="text-sm font-semibold">Follow along</p>
             <div className="mt-3 flex md:justify-center gap-3">
               {[
-                { icon: Instagram, href: "https://www.instagram.com/hooriaai.official/", label: "Instagram" },
-                { icon: Linkedin, href: "https://www.linkedin.com/company/hooria-ai", label: "LinkedIn" },
+                {
+                  icon: Instagram,
+                  href: "https://www.instagram.com/hooriaai.official/",
+                  label: "Instagram",
+                },
+                {
+                  icon: Linkedin,
+                  href: "https://www.linkedin.com/company/hooria-ai",
+                  label: "LinkedIn",
+                },
               ].map((s) => (
                 <a
                   key={s.label}
@@ -809,7 +1125,9 @@ function Footer() {
             >
               <Mail className="h-4 w-4" /> queries@hooriaai.com
             </a>
-            <p className="mt-2 text-sm text-muted-foreground">Remote · Worldwide</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Remote · Worldwide
+            </p>
           </div>
         </div>
         <div className="mt-10 pt-6 border-t border-border/40 flex justify-end text-xs text-muted-foreground">
@@ -832,9 +1150,8 @@ function ThemeToggle() {
   const [theme, setTheme] = useState<ThemeMode>("dark");
 
   useEffect(() => {
-    const stored = (typeof window !== "undefined" && localStorage.getItem("theme")) as
-      | ThemeMode
-      | null;
+    const stored = (typeof window !== "undefined" &&
+      localStorage.getItem("theme")) as ThemeMode | null;
     const initial: ThemeMode = stored ?? "dark";
     setTheme(initial);
     applyTheme(initial);
@@ -853,7 +1170,11 @@ function ThemeToggle() {
   };
 
   const label =
-    theme === "dark" ? "Switch to light mode" : theme === "light" ? "Switch to emerald mode" : "Switch to dark mode";
+    theme === "dark"
+      ? "Switch to light mode"
+      : theme === "light"
+        ? "Switch to emerald mode"
+        : "Switch to dark mode";
   const Icon = theme === "dark" ? Sun : theme === "light" ? Leaf : Moon;
 
   return (
@@ -873,9 +1194,14 @@ function HomePage() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   useEffect(() => {
     const read = () =>
-      setTheme(document.documentElement.classList.contains("light") ? "light" : "dark");
+      setTheme(
+        document.documentElement.classList.contains("light") ? "light" : "dark",
+      );
     const observer = new MutationObserver(read);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
     read();
     return () => observer.disconnect();
   }, []);
