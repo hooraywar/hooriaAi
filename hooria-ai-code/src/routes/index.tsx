@@ -146,16 +146,24 @@ async function fetchServices(): Promise<Service[]> {
 }
 
 // Maps a curriculum id to its slug, for published curricula only — used to
-// link a program card to the curriculum page it should open.
-async function fetchPublishedCurriculumSlugs(): Promise<
-  Record<string, string>
-> {
+// link a program card to the curriculum page it should open. Also carries
+// the default (first, by sort order) published curriculum's slug, so a
+// program with no curriculum explicitly linked still opens a curriculum
+// page instead of being a dead card.
+async function fetchPublishedCurriculumSlugs(): Promise<{
+  byId: Record<string, string>;
+  defaultSlug: string | null;
+}> {
   const { data, error } = await supabase
     .from("curriculums")
     .select("id, slug")
-    .eq("is_published", true);
+    .eq("is_published", true)
+    .order("sort_order", { ascending: true });
   if (error) throw error;
-  return Object.fromEntries((data ?? []).map((c) => [c.id, c.slug]));
+  return {
+    byId: Object.fromEntries((data ?? []).map((c) => [c.id, c.slug])),
+    defaultSlug: data?.[0]?.slug ?? null,
+  };
 }
 
 async function fetchFaqs(): Promise<Faq[]> {
@@ -267,6 +275,12 @@ function Reveal({
 
 // ---------- Sections ----------
 function Nav() {
+  const { data: curriculumSettings } = useQuery({
+    queryKey: ["curriculum-preview-settings"],
+    queryFn: fetchCurriculumPreviewSettings,
+  });
+  const showCurriculumLink = curriculumSettings?.is_visible ?? true;
+
   return (
     <header className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -284,9 +298,11 @@ function Nav() {
           <a href="#programs" className="hover:text-foreground transition">
             Programs
           </a>
-          <a href="#curriculum" className="hover:text-foreground transition">
-            Curriculum
-          </a>
+          {showCurriculumLink && (
+            <a href="#curriculum" className="hover:text-foreground transition">
+              Curriculum
+            </a>
+          )}
           <a href="#instructor" className="hover:text-foreground transition">
             Instructor
           </a>
@@ -449,7 +465,7 @@ function Programs() {
     queryKey: ["services"],
     queryFn: fetchServices,
   });
-  const { data: curriculumSlugs = {} } = useQuery({
+  const { data: curriculumSlugs } = useQuery({
     queryKey: ["curriculum-slugs"],
     queryFn: fetchPublishedCurriculumSlugs,
   });
@@ -485,9 +501,12 @@ function Programs() {
                   const discounted = s.discount_percentage
                     ? discountedPriceLabel(s.price_label, s.discount_percentage)
                     : null;
-                  const curriculumSlug = s.curriculum_id
-                    ? curriculumSlugs[s.curriculum_id]
-                    : undefined;
+                  const curriculumSlug =
+                    (s.curriculum_id
+                      ? curriculumSlugs?.byId[s.curriculum_id]
+                      : undefined) ??
+                    curriculumSlugs?.defaultSlug ??
+                    undefined;
                   const cardInner = (
                     <div
                       className={cn(
@@ -1162,6 +1181,12 @@ function Signup() {
 }
 
 function Footer() {
+  const { data: curriculumSettings } = useQuery({
+    queryKey: ["curriculum-preview-settings"],
+    queryFn: fetchCurriculumPreviewSettings,
+  });
+  const showCurriculumLink = curriculumSettings?.is_visible ?? true;
+
   return (
     <footer className="border-t border-border/50 bg-surface/40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14">
@@ -1186,12 +1211,14 @@ function Footer() {
               <a href="#programs" className="hover:text-foreground transition">
                 Programs
               </a>
-              <a
-                href="#curriculum"
-                className="hover:text-foreground transition"
-              >
-                Curriculum
-              </a>
+              {showCurriculumLink && (
+                <a
+                  href="#curriculum"
+                  className="hover:text-foreground transition"
+                >
+                  Curriculum
+                </a>
+              )}
               <a
                 href="#instructor"
                 className="hover:text-foreground transition"
