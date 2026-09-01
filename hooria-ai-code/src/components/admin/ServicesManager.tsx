@@ -1,6 +1,21 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -40,6 +55,38 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 type Service = Tables<"services">;
+
+function SortableServiceRow({
+  id,
+  children,
+}: {
+  id: string;
+  children: (drag: {
+    listeners: ReturnType<typeof useSortable>["listeners"];
+    attributes: ReturnType<typeof useSortable>["attributes"];
+  }) => ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+    >
+      {children({ listeners, attributes })}
+    </TableRow>
+  );
+}
 
 const ICONS = [
   "Sparkles",
@@ -198,11 +245,38 @@ export function ServicesManager() {
     queryClient.invalidateQueries({ queryKey: ["services"] });
   }
 
+  const dragSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = services.findIndex((s) => s.id === active.id);
+    const newIndex = services.findIndex((s) => s.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(services, oldIndex, newIndex);
+    queryClient.setQueryData(["admin-services"], reordered);
+
+    const results = await Promise.all(
+      reordered.map((s, i) =>
+        supabase.from("services").update({ sort_order: i }).eq("id", s.id),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) toast.error(failed.error.message);
+
+    queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+    queryClient.invalidateQueries({ queryKey: ["services"] });
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Programs shown in the "Pick your path into AI" section.
+          Programs shown in the "Pick your path into AI" section. Drag the{" "}
+          <GripVertical className="inline h-3.5 w-3.5" /> handle to reorder.
         </p>
         <Button size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4" /> New Program
@@ -268,6 +342,7 @@ export function ServicesManager() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8" />
               <TableHead>Title</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Discount</TableHead>
@@ -282,7 +357,7 @@ export function ServicesManager() {
             {isLoading && (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="text-center text-muted-foreground"
                 >
                   Loading...
@@ -292,58 +367,89 @@ export function ServicesManager() {
             {!isLoading && services.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="text-center text-muted-foreground"
                 >
                   No programs yet.
                 </TableCell>
               </TableRow>
             )}
-            {services.map((s) => (
-              <TableRow key={s.id}>
-                <TableCell className="font-medium">{s.title}</TableCell>
-                <TableCell>{s.price_label}</TableCell>
-                <TableCell>
-                  {s.discount_percentage > 0 ? (
-                    <Badge variant="secondary">
-                      {s.discount_percentage}% off
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Switch
-                    checked={s.is_active}
-                    onCheckedChange={(v) => toggleActive(s, v)}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Switch
-                    checked={s.is_coming_soon}
-                    onCheckedChange={(v) => toggleComingSoon(s, v)}
-                  />
-                </TableCell>
-                <TableCell>{s.is_highlighted ? "Yes" : "No"}</TableCell>
-                <TableCell>{s.sort_order}</TableCell>
-                <TableCell className="text-right space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEdit(s)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(s.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {!isLoading && services.length > 0 && (
+              <DndContext
+                sensors={dragSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={services.map((s) => s.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {services.map((s) => (
+                    <SortableServiceRow key={s.id} id={s.id}>
+                      {({ listeners, attributes }) => (
+                        <>
+                          <TableCell>
+                            <button
+                              type="button"
+                              className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+                              {...attributes}
+                              {...listeners}
+                            >
+                              <GripVertical className="h-4 w-4" />
+                            </button>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {s.title}
+                          </TableCell>
+                          <TableCell>{s.price_label}</TableCell>
+                          <TableCell>
+                            {s.discount_percentage > 0 ? (
+                              <Badge variant="secondary">
+                                {s.discount_percentage}% off
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={s.is_active}
+                              onCheckedChange={(v) => toggleActive(s, v)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={s.is_coming_soon}
+                              onCheckedChange={(v) => toggleComingSoon(s, v)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {s.is_highlighted ? "Yes" : "No"}
+                          </TableCell>
+                          <TableCell>{s.sort_order}</TableCell>
+                          <TableCell className="text-right space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEdit(s)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(s.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </>
+                      )}
+                    </SortableServiceRow>
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
           </TableBody>
         </Table>
       </div>

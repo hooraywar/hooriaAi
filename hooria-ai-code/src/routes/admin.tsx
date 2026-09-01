@@ -140,7 +140,34 @@ function AccessDenied() {
   );
 }
 
+const ADMIN_TAB_STORAGE_KEY = "hooria-admin-active-tab";
+const ADMIN_TAB_VALUES = [
+  "services",
+  "curriculum-preview",
+  "curriculum-modules",
+  "instructor",
+  "portfolio",
+  "faqs",
+  "signups",
+] as const;
+type AdminTab = (typeof ADMIN_TAB_VALUES)[number];
+
+function getStoredAdminTab(): AdminTab {
+  if (typeof window === "undefined") return "services";
+  const stored = window.localStorage.getItem(ADMIN_TAB_STORAGE_KEY);
+  return (ADMIN_TAB_VALUES as readonly string[]).includes(stored ?? "")
+    ? (stored as AdminTab)
+    : "services";
+}
+
 function AdminDashboard({ email }: { email: string }) {
+  const [activeTab, setActiveTab] = useState<AdminTab>(getStoredAdminTab);
+
+  function handleTabChange(value: string) {
+    setActiveTab(value as AdminTab);
+    window.localStorage.setItem(ADMIN_TAB_STORAGE_KEY, value);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/40 bg-surface/40">
@@ -159,7 +186,7 @@ function AdminDashboard({ email }: { email: string }) {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
-        <Tabs defaultValue="services">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="h-auto flex-wrap justify-start">
             <TabsTrigger value="services">Programs</TabsTrigger>
             <TabsTrigger value="curriculum-preview">
