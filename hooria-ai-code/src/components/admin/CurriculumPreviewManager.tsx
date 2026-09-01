@@ -23,20 +23,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { CurriculumSelector, useCurriculums } from "./CurriculumSelector";
 
 type Module = Tables<"curriculum_preview">;
 
-const emptyForm: TablesInsert<"curriculum_preview"> = {
-  module_number: "",
-  title: "",
-  description: "",
-  sort_order: 0,
-};
+function emptyForm(curriculumId: string): TablesInsert<"curriculum_preview"> {
+  return {
+    curriculum_id: curriculumId,
+    module_number: "",
+    title: "",
+    description: "",
+    sort_order: 0,
+  };
+}
 
-async function fetchModules(): Promise<Module[]> {
+async function fetchModules(curriculumId: string): Promise<Module[]> {
   const { data, error } = await supabase
     .from("curriculum_preview")
     .select("*")
+    .eq("curriculum_id", curriculumId)
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -44,20 +49,29 @@ async function fetchModules(): Promise<Module[]> {
 
 export function CurriculumPreviewManager() {
   const queryClient = useQueryClient();
+  const { data: curriculums = [] } = useCurriculums();
+  const [selectedCurriculumId, setSelectedCurriculumId] = useState<
+    string | null
+  >(null);
+  const curriculumId = selectedCurriculumId ?? curriculums[0]?.id ?? null;
+
   const { data: modules = [], isLoading } = useQuery({
-    queryKey: ["admin-curriculum-preview"],
-    queryFn: fetchModules,
+    queryKey: ["admin-curriculum-preview", curriculumId],
+    queryFn: () => fetchModules(curriculumId as string),
+    enabled: !!curriculumId,
   });
 
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] =
-    useState<TablesInsert<"curriculum_preview">>(emptyForm);
+  const [form, setForm] = useState<TablesInsert<"curriculum_preview">>(
+    emptyForm(curriculumId ?? ""),
+  );
   const [saving, setSaving] = useState(false);
 
   function openCreate() {
+    if (!curriculumId) return;
     setEditingId(null);
-    setForm(emptyForm);
+    setForm(emptyForm(curriculumId));
     setOpen(true);
   }
 
@@ -68,13 +82,15 @@ export function CurriculumPreviewManager() {
   }
 
   async function handleSave() {
+    if (!curriculumId) return;
     setSaving(true);
+    const payload = { ...form, curriculum_id: curriculumId };
     const { error } = editingId
       ? await supabase
           .from("curriculum_preview")
-          .update(form)
+          .update(payload)
           .eq("id", editingId)
-      : await supabase.from("curriculum_preview").insert(form);
+      : await supabase.from("curriculum_preview").insert(payload);
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -103,11 +119,23 @@ export function CurriculumPreviewManager() {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        The curriculum preview grid on the homepage. Cards follow the same
+        curricula and on/off visibility as the curriculum page.
+      </p>
+
+      <CurriculumSelector
+        selectedId={curriculumId}
+        onSelect={setSelectedCurriculumId}
+      />
+
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          The 8-card curriculum preview grid on the homepage.
+          {curriculumId
+            ? "Preview cards for the selected curriculum."
+            : "Select or create a curriculum above to manage its preview cards."}
         </p>
-        <Button size="sm" onClick={openCreate}>
+        <Button size="sm" onClick={openCreate} disabled={!curriculumId}>
           <Plus className="h-4 w-4" /> New Module
         </Button>
       </div>

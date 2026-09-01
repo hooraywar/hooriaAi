@@ -30,6 +30,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 type Service = Tables<"services">;
@@ -58,6 +65,9 @@ const emptyForm: TablesInsert<"services"> = {
   icon: "Sparkles",
   price_label: "",
   is_highlighted: false,
+  is_active: true,
+  is_coming_soon: false,
+  discount_percentage: 0,
   sort_order: 0,
 };
 
@@ -81,6 +91,72 @@ export function ServicesManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TablesInsert<"services">>(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  const [discountTargetIds, setDiscountTargetIds] = useState<string[]>([]);
+  const [discountPercent, setDiscountPercent] = useState("");
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
+
+  function toggleDiscountTarget(id: string) {
+    setDiscountTargetIds((ids) =>
+      ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id],
+    );
+  }
+
+  async function handleApplyDiscount() {
+    const pct = Number(discountPercent);
+    if (discountTargetIds.length === 0) {
+      toast.error("Select at least one program");
+      return;
+    }
+    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+      toast.error("Enter a discount percentage between 0 and 100");
+      return;
+    }
+    setApplyingDiscount(true);
+    const { error } = await supabase
+      .from("services")
+      .update({ discount_percentage: pct })
+      .in("id", discountTargetIds);
+    setApplyingDiscount(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(
+      `${pct}% discount applied to ${discountTargetIds.length} program${discountTargetIds.length === 1 ? "" : "s"}`,
+    );
+    setDiscountTargetIds([]);
+    setDiscountPercent("");
+    queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+    queryClient.invalidateQueries({ queryKey: ["services"] });
+  }
+
+  async function toggleActive(service: Service, value: boolean) {
+    const { error } = await supabase
+      .from("services")
+      .update({ is_active: value })
+      .eq("id", service.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(value ? "Program is now available" : "Program is now off");
+    queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+    queryClient.invalidateQueries({ queryKey: ["services"] });
+  }
+
+  async function toggleComingSoon(service: Service, value: boolean) {
+    const { error } = await supabase
+      .from("services")
+      .update({ is_coming_soon: value })
+      .eq("id", service.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+    queryClient.invalidateQueries({ queryKey: ["services"] });
+  }
 
   function openCreate() {
     setEditingId(null);
@@ -133,13 +209,70 @@ export function ServicesManager() {
         </Button>
       </div>
 
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/60 p-4">
+        <div className="space-y-1.5">
+          <Label>Apply discount to programs</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-64 justify-start">
+                {discountTargetIds.length === 0
+                  ? "Select programs..."
+                  : `${discountTargetIds.length} program${discountTargetIds.length === 1 ? "" : "s"} selected`}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2">
+              <div className="max-h-64 space-y-1 overflow-y-auto">
+                {services.length === 0 && (
+                  <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                    No programs yet.
+                  </p>
+                )}
+                {services.map((s) => (
+                  <label
+                    key={s.id}
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface/80"
+                  >
+                    <Checkbox
+                      checked={discountTargetIds.includes(s.id)}
+                      onCheckedChange={() => toggleDiscountTarget(s.id)}
+                    />
+                    {s.title}
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="discount_percent">Discount %</Label>
+          <Input
+            id="discount_percent"
+            type="number"
+            min={0}
+            max={100}
+            className="w-28"
+            value={discountPercent}
+            onChange={(e) => setDiscountPercent(e.target.value)}
+            placeholder="e.g. 20"
+          />
+        </div>
+        <Button
+          onClick={handleApplyDiscount}
+          disabled={applyingDiscount || !discountPercent}
+        >
+          {applyingDiscount ? "Applying..." : "Apply discount"}
+        </Button>
+      </div>
+
       <div className="rounded-lg border border-border/60">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Icon</TableHead>
+              <TableHead>Discount</TableHead>
+              <TableHead>Available</TableHead>
+              <TableHead>Coming soon</TableHead>
               <TableHead>Highlighted</TableHead>
               <TableHead>Order</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -149,7 +282,7 @@ export function ServicesManager() {
             {isLoading && (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={8}
                   className="text-center text-muted-foreground"
                 >
                   Loading...
@@ -159,7 +292,7 @@ export function ServicesManager() {
             {!isLoading && services.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={8}
                   className="text-center text-muted-foreground"
                 >
                   No programs yet.
@@ -170,7 +303,27 @@ export function ServicesManager() {
               <TableRow key={s.id}>
                 <TableCell className="font-medium">{s.title}</TableCell>
                 <TableCell>{s.price_label}</TableCell>
-                <TableCell>{s.icon}</TableCell>
+                <TableCell>
+                  {s.discount_percentage > 0 ? (
+                    <Badge variant="secondary">
+                      {s.discount_percentage}% off
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={s.is_active}
+                    onCheckedChange={(v) => toggleActive(s, v)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={s.is_coming_soon}
+                    onCheckedChange={(v) => toggleComingSoon(s, v)}
+                  />
+                </TableCell>
                 <TableCell>{s.is_highlighted ? "Yes" : "No"}</TableCell>
                 <TableCell>{s.sort_order}</TableCell>
                 <TableCell className="text-right space-x-1">
@@ -278,6 +431,45 @@ export function ServicesManager() {
                 />
                 <Label htmlFor="is_highlighted">Flagship / highlighted</Label>
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="is_active"
+                  checked={form.is_active ?? true}
+                  onCheckedChange={(v) =>
+                    setForm((f) => ({ ...f, is_active: v }))
+                  }
+                />
+                <Label htmlFor="is_active">Available (on/off)</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="is_coming_soon"
+                  checked={form.is_coming_soon ?? false}
+                  onCheckedChange={(v) =>
+                    setForm((f) => ({ ...f, is_coming_soon: v }))
+                  }
+                />
+                <Label htmlFor="is_coming_soon">Coming soon</Label>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="discount_percentage">Discount %</Label>
+              <Input
+                id="discount_percentage"
+                type="number"
+                min={0}
+                max={100}
+                className="w-32"
+                value={form.discount_percentage ?? 0}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    discount_percentage: Number(e.target.value),
+                  }))
+                }
+              />
             </div>
           </div>
           <DialogFooter>

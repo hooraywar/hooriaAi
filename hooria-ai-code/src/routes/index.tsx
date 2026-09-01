@@ -77,8 +77,23 @@ type Service = {
   icon: string;
   price_label: string;
   is_highlighted: boolean;
+  is_active: boolean;
+  is_coming_soon: boolean;
+  discount_percentage: number;
   sort_order: number;
 };
+
+// Parses labels like "PKR 35,000" into a currency prefix and a number so a
+// discount can be applied while keeping the original formatting.
+function discountedPriceLabel(priceLabel: string, discountPercentage: number) {
+  const match = priceLabel.match(/^([^\d]*)([\d,]+)(.*)$/);
+  if (!match || discountPercentage <= 0) return null;
+  const [, prefix, digits, suffix] = match;
+  const amount = Number(digits.replace(/,/g, ""));
+  if (!Number.isFinite(amount)) return null;
+  const discounted = Math.round(amount * (1 - discountPercentage / 100));
+  return `${prefix}${discounted.toLocaleString()}${suffix}`;
+}
 
 type Faq = { id: string; question: string; answer: string; sort_order: number };
 
@@ -117,6 +132,7 @@ async function fetchServices(): Promise<Service[]> {
   const { data, error } = await supabase
     .from("services")
     .select("*")
+    .eq("is_active", true)
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -132,9 +148,18 @@ async function fetchFaqs(): Promise<Faq[]> {
 }
 
 async function fetchCurriculumPreview(): Promise<CurriculumPreviewItem[]> {
+  const { data: curriculums, error: curriculumsError } = await supabase
+    .from("curriculums")
+    .select("id")
+    .eq("is_published", true);
+  if (curriculumsError) throw curriculumsError;
+  const publishedIds = (curriculums ?? []).map((c) => c.id);
+  if (publishedIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from("curriculum_preview")
     .select("*")
+    .in("curriculum_id", publishedIds)
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -423,6 +448,9 @@ function Programs() {
             return (
               <Reveal key={s.id} delay={i * 80}>
                 {(() => {
+                  const discounted = s.discount_percentage
+                    ? discountedPriceLabel(s.price_label, s.discount_percentage)
+                    : null;
                   const cardInner = (
                     <div
                       className={cn(
@@ -430,11 +458,17 @@ function Programs() {
                         s.is_highlighted
                           ? "border-transparent bg-gradient-brand shadow-brand-violet hover:scale-[1.02]"
                           : "border-border/60 bg-surface/60 hover:border-brand-blue/50 hover:bg-surface",
+                        s.is_coming_soon && "opacity-80",
                       )}
                     >
                       {s.is_highlighted && (
                         <div className="absolute -top-3 left-6 rounded-full bg-background px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase text-brand-glow border border-brand-violet/50">
                           Flagship
+                        </div>
+                      )}
+                      {s.is_coming_soon && (
+                        <div className="absolute -top-3 right-6 rounded-full bg-background px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase text-muted-foreground border border-border">
+                          Coming Soon
                         </div>
                       )}
                       <div
@@ -465,22 +499,56 @@ function Programs() {
                       >
                         {s.description}
                       </p>
-                      <div
-                        className={cn(
-                          "mt-6 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                          s.is_highlighted
-                            ? "bg-white/20 text-primary-foreground"
-                            : "bg-brand-violet/10 text-brand-glow",
-                        )}
-                      >
-                        {s.price_label || "Contact us"}
-                        {s.is_highlighted && (
-                          <ArrowRight className="h-3.5 w-3.5" />
+                      <div className="mt-6 flex flex-wrap items-center gap-2">
+                        {s.is_coming_soon ? (
+                          <div
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                              s.is_highlighted
+                                ? "bg-white/20 text-primary-foreground"
+                                : "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            Coming Soon
+                          </div>
+                        ) : (
+                          <>
+                            {discounted && (
+                              <span
+                                className={cn(
+                                  "text-xs line-through",
+                                  s.is_highlighted
+                                    ? "text-primary-foreground/60"
+                                    : "text-muted-foreground",
+                                )}
+                              >
+                                {s.price_label}
+                              </span>
+                            )}
+                            <div
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                                s.is_highlighted
+                                  ? "bg-white/20 text-primary-foreground"
+                                  : "bg-brand-violet/10 text-brand-glow",
+                              )}
+                            >
+                              {discounted ?? s.price_label ?? "Contact us"}
+                              {s.is_highlighted && (
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              )}
+                            </div>
+                            {discounted && (
+                              <span className="rounded-full bg-brand-blue/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-blue">
+                                {s.discount_percentage}% off
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
                   );
-                  return s.is_highlighted ? (
+                  return s.is_highlighted && !s.is_coming_soon ? (
                     <Link to="/curriculum" className="block h-full">
                       {cardInner}
                     </Link>

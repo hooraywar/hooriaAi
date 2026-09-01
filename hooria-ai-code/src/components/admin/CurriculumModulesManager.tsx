@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { CurriculumSelector, useCurriculums } from "./CurriculumSelector";
 
 type ModuleRow = Tables<"curriculum_modules">;
 type Session = { title: string; points: string[] };
@@ -71,10 +72,11 @@ const emptyForm: FormState = {
   sessions: [],
 };
 
-async function fetchModules(): Promise<ModuleRow[]> {
+async function fetchModules(curriculumId: string): Promise<ModuleRow[]> {
   const { data, error } = await supabase
     .from("curriculum_modules")
     .select("*")
+    .eq("curriculum_id", curriculumId)
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -97,9 +99,16 @@ function toFormState(row: ModuleRow): FormState {
 
 export function CurriculumModulesManager() {
   const queryClient = useQueryClient();
+  const { data: curriculums = [] } = useCurriculums();
+  const [selectedCurriculumId, setSelectedCurriculumId] = useState<
+    string | null
+  >(null);
+  const curriculumId = selectedCurriculumId ?? curriculums[0]?.id ?? null;
+
   const { data: modules = [], isLoading } = useQuery({
-    queryKey: ["admin-curriculum-modules"],
-    queryFn: fetchModules,
+    queryKey: ["admin-curriculum-modules", curriculumId],
+    queryFn: () => fetchModules(curriculumId as string),
+    enabled: !!curriculumId,
   });
 
   const [open, setOpen] = useState(false);
@@ -120,8 +129,10 @@ export function CurriculumModulesManager() {
   }
 
   async function handleSave() {
+    if (!curriculumId) return;
     setSaving(true);
     const payload = {
+      curriculum_id: curriculumId,
       module_number: form.module_number,
       weeks: form.weeks,
       title: form.title,
@@ -224,11 +235,24 @@ export function CurriculumModulesManager() {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        The week-by-week modules on the full /curriculum page. Create as many
+        curricula as you need and toggle each one on or off to control what's
+        visible on the site.
+      </p>
+
+      <CurriculumSelector
+        selectedId={curriculumId}
+        onSelect={setSelectedCurriculumId}
+      />
+
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          The week-by-week modules on the full /curriculum page.
+          {curriculumId
+            ? "Modules for the selected curriculum."
+            : "Select or create a curriculum above to manage its modules."}
         </p>
-        <Button size="sm" onClick={openCreate}>
+        <Button size="sm" onClick={openCreate} disabled={!curriculumId}>
           <Plus className="h-4 w-4" /> New Module
         </Button>
       </div>

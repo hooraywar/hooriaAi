@@ -106,25 +106,47 @@ type Module = {
   sessions: Session[];
   deliverable?: string | null;
 };
+type CurriculumGroup = { id: string; title: string; modules: Module[] };
 
-async function fetchCurriculumModules(): Promise<Module[]> {
+async function fetchCurriculumModules(): Promise<CurriculumGroup[]> {
+  const { data: curriculums, error: curriculumsError } = await supabase
+    .from("curriculums")
+    .select("id, title")
+    .eq("is_published", true)
+    .order("sort_order", { ascending: true });
+  if (curriculumsError) throw curriculumsError;
+  if (!curriculums || curriculums.length === 0) return [];
+
   const { data, error } = await supabase
     .from("curriculum_modules")
     .select("*")
+    .in(
+      "curriculum_id",
+      curriculums.map((c) => c.id),
+    )
     .order("sort_order", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    n: row.module_number,
-    weeks: row.weeks,
-    title: row.title,
-    icon: row.icon,
-    intro: row.intro,
-    sessions: Array.isArray(row.sessions)
-      ? (row.sessions as unknown as Session[])
-      : [],
-    deliverable: row.deliverable,
-  }));
+
+  return curriculums
+    .map((c) => ({
+      id: c.id,
+      title: c.title,
+      modules: (data ?? [])
+        .filter((row) => row.curriculum_id === c.id)
+        .map((row) => ({
+          id: row.id,
+          n: row.module_number,
+          weeks: row.weeks,
+          title: row.title,
+          icon: row.icon,
+          intro: row.intro,
+          sessions: Array.isArray(row.sessions)
+            ? (row.sessions as unknown as Session[])
+            : [],
+          deliverable: row.deliverable,
+        })),
+    }))
+    .filter((g) => g.modules.length > 0);
 }
 
 const snapshot = [
@@ -158,10 +180,11 @@ const portfolioOut = [
 ];
 
 function CurriculumPage() {
-  const { data: modules = [], isLoading } = useQuery({
+  const { data: groups = [], isLoading } = useQuery({
     queryKey: ["curriculum-modules"],
     queryFn: fetchCurriculumModules,
   });
+  const showGroupHeadings = groups.length > 1;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -250,7 +273,7 @@ function CurriculumPage() {
             </p>
           </Reveal>
 
-          <div className="mt-16 space-y-6">
+          <div className="mt-16 space-y-14">
             {isLoading &&
               Array.from({ length: 4 }).map((_, i) => (
                 <div
@@ -258,71 +281,78 @@ function CurriculumPage() {
                   className="h-40 rounded-2xl border border-border/60 bg-surface/50 animate-pulse"
                 />
               ))}
-            {modules.map((m, i) => {
-              const Icon = iconMap[m.icon] ?? Sparkles;
-              return (
-                <Reveal key={m.id} delay={i * 40}>
-                  <article className="relative rounded-2xl border border-border/60 bg-surface/60 p-6 sm:p-8 hover:border-brand-violet/50 transition">
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-                      <div className="flex sm:flex-col items-center sm:items-start gap-4 sm:gap-3 sm:w-40 shrink-0">
-                        <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-brand shadow-brand">
-                          <Icon className="h-6 w-6 text-primary-foreground" />
-                        </div>
-                        <div>
-                          <div className="font-display text-2xl font-bold text-gradient-brand">
-                            Module {m.n}
-                          </div>
-                          <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-0.5">
-                            {m.weeks}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xl sm:text-2xl font-bold">
-                          {m.title}
-                        </h3>
-                        {m.intro && (
-                          <p className="mt-2 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                            {m.intro}
-                          </p>
-                        )}
-                        <div className="mt-5 space-y-5">
-                          {m.sessions.map((s) => (
-                            <div key={s.title}>
-                              <h4 className="text-sm sm:text-base font-semibold text-foreground">
-                                {s.title}
-                              </h4>
-                              <ul className="mt-2 space-y-1.5">
-                                {s.points.map((p) => (
-                                  <li
-                                    key={p}
-                                    className="flex gap-2.5 text-sm text-muted-foreground leading-relaxed"
-                                  >
-                                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" />
-                                    <span>{p}</span>
-                                  </li>
-                                ))}
-                              </ul>
+            {groups.map((g) => (
+              <div key={g.id} className="space-y-6">
+                {showGroupHeadings && (
+                  <h3 className="text-xl font-bold">{g.title}</h3>
+                )}
+                {g.modules.map((m, i) => {
+                  const Icon = iconMap[m.icon] ?? Sparkles;
+                  return (
+                    <Reveal key={m.id} delay={i * 40}>
+                      <article className="relative rounded-2xl border border-border/60 bg-surface/60 p-6 sm:p-8 hover:border-brand-violet/50 transition">
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+                          <div className="flex sm:flex-col items-center sm:items-start gap-4 sm:gap-3 sm:w-40 shrink-0">
+                            <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-brand shadow-brand">
+                              <Icon className="h-6 w-6 text-primary-foreground" />
                             </div>
-                          ))}
-                        </div>
-                        {m.deliverable && (
-                          <div className="mt-5 rounded-xl border border-brand-violet/40 bg-brand-violet/10 px-4 py-3 text-sm">
-                            <span className="font-semibold text-brand-glow">
-                              Deliverable ·{" "}
-                            </span>
-                            <span className="text-foreground/90">
-                              {m.deliverable}
-                            </span>
+                            <div>
+                              <div className="font-display text-2xl font-bold text-gradient-brand">
+                                Module {m.n}
+                              </div>
+                              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-0.5">
+                                {m.weeks}
+                              </div>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                </Reveal>
-              );
-            })}
+
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-xl sm:text-2xl font-bold">
+                              {m.title}
+                            </h3>
+                            {m.intro && (
+                              <p className="mt-2 text-sm sm:text-base text-muted-foreground leading-relaxed">
+                                {m.intro}
+                              </p>
+                            )}
+                            <div className="mt-5 space-y-5">
+                              {m.sessions.map((s) => (
+                                <div key={s.title}>
+                                  <h4 className="text-sm sm:text-base font-semibold text-foreground">
+                                    {s.title}
+                                  </h4>
+                                  <ul className="mt-2 space-y-1.5">
+                                    {s.points.map((p) => (
+                                      <li
+                                        key={p}
+                                        className="flex gap-2.5 text-sm text-muted-foreground leading-relaxed"
+                                      >
+                                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" />
+                                        <span>{p}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                            {m.deliverable && (
+                              <div className="mt-5 rounded-xl border border-brand-violet/40 bg-brand-violet/10 px-4 py-3 text-sm">
+                                <span className="font-semibold text-brand-glow">
+                                  Deliverable ·{" "}
+                                </span>
+                                <span className="text-foreground/90">
+                                  {m.deliverable}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    </Reveal>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </section>

@@ -14,9 +14,34 @@ export type Database = {
   };
   public: {
     Tables: {
+      curriculums: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_published: boolean;
+          sort_order: number;
+          title: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_published?: boolean;
+          sort_order?: number;
+          title: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_published?: boolean;
+          sort_order?: number;
+          title?: string;
+        };
+        Relationships: [];
+      };
       curriculum_preview: {
         Row: {
           created_at: string;
+          curriculum_id: string;
           description: string;
           id: string;
           module_number: string;
@@ -25,6 +50,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          curriculum_id: string;
           description: string;
           id?: string;
           module_number: string;
@@ -33,17 +59,27 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          curriculum_id?: string;
           description?: string;
           id?: string;
           module_number?: string;
           sort_order?: number;
           title?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_preview_curriculum_id_fkey";
+            columns: ["curriculum_id"];
+            isOneToOne: false;
+            referencedRelation: "curriculums";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       curriculum_modules: {
         Row: {
           created_at: string;
+          curriculum_id: string;
           deliverable: string | null;
           icon: string;
           id: string;
@@ -56,6 +92,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          curriculum_id: string;
           deliverable?: string | null;
           icon?: string;
           id?: string;
@@ -68,6 +105,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          curriculum_id?: string;
           deliverable?: string | null;
           icon?: string;
           id?: string;
@@ -78,7 +116,15 @@ export type Database = {
           title?: string;
           weeks?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_modules_curriculum_id_fkey";
+            columns: ["curriculum_id"];
+            isOneToOne: false;
+            referencedRelation: "curriculums";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       instructor: {
         Row: {
@@ -174,8 +220,11 @@ export type Database = {
         Row: {
           created_at: string;
           description: string;
+          discount_percentage: number;
           icon: string;
           id: string;
+          is_active: boolean;
+          is_coming_soon: boolean;
           is_highlighted: boolean;
           price_label: string;
           sort_order: number;
@@ -184,8 +233,11 @@ export type Database = {
         Insert: {
           created_at?: string;
           description: string;
+          discount_percentage?: number;
           icon?: string;
           id?: string;
+          is_active?: boolean;
+          is_coming_soon?: boolean;
           is_highlighted?: boolean;
           price_label?: string;
           sort_order?: number;
@@ -194,8 +246,11 @@ export type Database = {
         Update: {
           created_at?: string;
           description?: string;
+          discount_percentage?: number;
           icon?: string;
           id?: string;
+          is_active?: boolean;
+          is_coming_soon?: boolean;
           is_highlighted?: boolean;
           price_label?: string;
           sort_order?: number;
