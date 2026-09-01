@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,7 @@ type Service = {
   is_coming_soon: boolean;
   discount_percentage: number;
   curriculum_id: string | null;
+  link_url: string | null;
   sort_order: number;
 };
 
@@ -507,6 +509,8 @@ function Programs() {
                       : undefined) ??
                     curriculumSlugs?.defaultSlug ??
                     undefined;
+                  const isClickable =
+                    !s.is_coming_soon && !!(s.link_url || curriculumSlug);
                   const cardInner = (
                     <div
                       className={cn(
@@ -590,7 +594,7 @@ function Programs() {
                               )}
                             >
                               {discounted ?? s.price_label ?? "Contact us"}
-                              {curriculumSlug && (
+                              {isClickable && (
                                 <ArrowRight className="h-3.5 w-3.5" />
                               )}
                             </div>
@@ -604,16 +608,22 @@ function Programs() {
                       </div>
                     </div>
                   );
-                  return curriculumSlug && !s.is_coming_soon ? (
+                  if (!isClickable) return cardInner;
+                  if (s.link_url) {
+                    return (
+                      <a href={s.link_url} className="block h-full">
+                        {cardInner}
+                      </a>
+                    );
+                  }
+                  return (
                     <Link
                       to="/curriculum/$slug"
-                      params={{ slug: curriculumSlug }}
+                      params={{ slug: curriculumSlug as string }}
                       className="block h-full"
                     >
                       {cardInner}
                     </Link>
-                  ) : (
-                    cardInner
                   );
                 })()}
               </Reveal>
@@ -1180,6 +1190,164 @@ function Signup() {
   );
 }
 
+// ---------- Mentoring signup form ----------
+const mentoringSignupSchema = z.object({
+  name: z.string().trim().min(1, "Name required").max(120),
+  email: z.string().trim().email("Invalid email").max(200),
+  whatsapp: z.string().trim().min(5, "Enter your WhatsApp number").max(40),
+  university: z.string().trim().min(1, "University required").max(200),
+  goal: z.string().trim().max(500).optional(),
+});
+
+function MentoringSignupForm() {
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const parsed = mentoringSignupSchema.safeParse({
+      name: fd.get("name"),
+      email: fd.get("email"),
+      whatsapp: fd.get("whatsapp"),
+      university: fd.get("university"),
+      goal: fd.get("goal") || undefined,
+    });
+    if (!parsed.success) {
+      toast.error(
+        parsed.error.issues[0]?.message ?? "Please check your details",
+      );
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase
+      .from("mentoring_signups")
+      .insert(parsed.data);
+    setLoading(false);
+    if (error) {
+      toast.error("Something went wrong. Please try again.");
+      return;
+    }
+    setSubmitted(true);
+    toast.success(
+      "You're booked in! We'll reach out to schedule your session.",
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="rounded-2xl border border-brand-blue/40 bg-surface/60 p-10 text-center">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-gradient-brand shadow-brand">
+          <Check className="h-7 w-7 text-primary-foreground" />
+        </div>
+        <h3 className="mt-5 text-2xl font-bold">You're on the list</h3>
+        <p className="mt-2 text-muted-foreground">
+          We'll reach out over WhatsApp and email to schedule your mentoring
+          session.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="rounded-2xl border border-border/60 bg-surface/60 p-6 sm:p-8 space-y-4"
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="mentoring-name">Full name</Label>
+          <Input
+            id="mentoring-name"
+            name="name"
+            placeholder="Ayesha Khan"
+            required
+            maxLength={120}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="mentoring-email">Email</Label>
+          <Input
+            id="mentoring-email"
+            name="email"
+            type="email"
+            placeholder="you@example.com"
+            required
+            maxLength={200}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="mentoring-whatsapp">WhatsApp number</Label>
+          <Input
+            id="mentoring-whatsapp"
+            name="whatsapp"
+            placeholder="+92 300 1234567"
+            required
+            maxLength={40}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="mentoring-university">University</Label>
+          <Input
+            id="mentoring-university"
+            name="university"
+            placeholder="FAST NUCES, LUMS, UET..."
+            required
+            maxLength={200}
+          />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="mentoring-goal">
+          What would you like help with? (optional)
+        </Label>
+        <Textarea
+          id="mentoring-goal"
+          name="goal"
+          placeholder="e.g. Mock interview for an AI engineering role, resume review..."
+          maxLength={500}
+        />
+      </div>
+      <Button
+        type="submit"
+        disabled={loading}
+        className="w-full h-12 rounded-full bg-gradient-brand text-primary-foreground font-semibold text-base shadow-brand hover:opacity-95"
+      >
+        {loading ? "Booking your session..." : "Book my mentoring session"}
+      </Button>
+    </form>
+  );
+}
+
+function MentoringSignup() {
+  return (
+    <section
+      id="mentoring-signup"
+      className="py-24 sm:py-32 relative overflow-hidden"
+    >
+      <div className="absolute inset-0 bg-hero-glow opacity-80" aria-hidden />
+      <div className="relative mx-auto max-w-4xl px-4 sm:px-6">
+        <Reveal className="text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
+            Career Mentoring
+          </p>
+          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
+            Book your{" "}
+            <span className="text-gradient-brand">1:1 mentoring session</span>
+          </h2>
+          <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+            Mock interviews, portfolio reviews, and career guidance from senior
+            AI engineers already working in the field.
+          </p>
+        </Reveal>
+        <Reveal delay={150} className="mt-10">
+          <MentoringSignupForm />
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   const { data: curriculumSettings } = useQuery({
     queryKey: ["curriculum-preview-settings"],
@@ -1366,6 +1534,7 @@ function HomePage() {
         <Testimonials />
         <Faqs />
         <Signup />
+        <MentoringSignup />
       </main>
       <Footer />
       <ThemeToggle />

@@ -272,6 +272,7 @@ export type Database = {
           is_active: boolean;
           is_coming_soon: boolean;
           is_highlighted: boolean;
+          link_url: string | null;
           price_label: string;
           sort_order: number;
           title: string;
@@ -286,6 +287,7 @@ export type Database = {
           is_active?: boolean;
           is_coming_soon?: boolean;
           is_highlighted?: boolean;
+          link_url?: string | null;
           price_label?: string;
           sort_order?: number;
           title: string;
@@ -300,6 +302,7 @@ export type Database = {
           is_active?: boolean;
           is_coming_soon?: boolean;
           is_highlighted?: boolean;
+          link_url?: string | null;
           price_label?: string;
           sort_order?: number;
           title?: string;
@@ -355,6 +358,36 @@ export type Database = {
         Update: {
           created_at?: string;
           email?: string;
+          id?: string;
+          name?: string;
+          university?: string;
+          whatsapp?: string;
+        };
+        Relationships: [];
+      };
+      mentoring_signups: {
+        Row: {
+          created_at: string;
+          email: string;
+          goal: string | null;
+          id: string;
+          name: string;
+          university: string;
+          whatsapp: string;
+        };
+        Insert: {
+          created_at?: string;
+          email: string;
+          goal?: string | null;
+          id?: string;
+          name: string;
+          university: string;
+          whatsapp: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string;
+          goal?: string | null;
           id?: string;
           name?: string;
           university?: string;

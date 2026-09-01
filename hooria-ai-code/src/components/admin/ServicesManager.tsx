@@ -117,6 +117,7 @@ const emptyForm: TablesInsert<"services"> = {
   is_coming_soon: false,
   discount_percentage: 0,
   curriculum_id: null,
+  link_url: null,
   sort_order: 0,
 };
 
@@ -548,6 +549,25 @@ export function ServicesManager() {
               </Select>
               <p className="text-xs text-muted-foreground">
                 Clicking this program on the site opens this curriculum's page.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="link_url">Custom link (optional)</Label>
+              <Input
+                id="link_url"
+                value={form.link_url ?? ""}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    link_url: e.target.value || null,
+                  }))
+                }
+                placeholder="e.g. #signup or https://..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Overrides the linked curriculum — use this for a signup form or
+                an external link instead of a curriculum page (e.g. #signup to
+                jump to a section on this page).
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">

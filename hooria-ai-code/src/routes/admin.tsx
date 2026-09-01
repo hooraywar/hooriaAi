@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ServicesManager } from "@/components/admin/ServicesManager";
 import { FaqsManager } from "@/components/admin/FaqsManager";
 import { SignupsTable } from "@/components/admin/SignupsTable";
+import { MentoringSignupsTable } from "@/components/admin/MentoringSignupsTable";
 import { CurriculumPreviewManager } from "@/components/admin/CurriculumPreviewManager";
 import { CurriculumModulesManager } from "@/components/admin/CurriculumModulesManager";
 import { InstructorManager } from "@/components/admin/InstructorManager";
@@ -149,6 +150,7 @@ const ADMIN_TAB_VALUES = [
   "portfolio",
   "faqs",
   "signups",
+  "mentoring-signups",
 ] as const;
 type AdminTab = (typeof ADMIN_TAB_VALUES)[number];
 
@@ -199,6 +201,9 @@ function AdminDashboard({ email }: { email: string }) {
             <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
             <TabsTrigger value="faqs">FAQs</TabsTrigger>
             <TabsTrigger value="signups">Webinar Signups</TabsTrigger>
+            <TabsTrigger value="mentoring-signups">
+              Mentoring Signups
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="services">
             <ServicesManager />
@@ -220,6 +225,9 @@ function AdminDashboard({ email }: { email: string }) {
           </TabsContent>
           <TabsContent value="signups">
             <SignupsTable />
+          </TabsContent>
+          <TabsContent value="mentoring-signups">
+            <MentoringSignupsTable />
           </TabsContent>
         </Tabs>
       </main>
