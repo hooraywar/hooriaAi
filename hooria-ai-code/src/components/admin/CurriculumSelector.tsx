@@ -6,6 +6,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
@@ -18,6 +19,24 @@ import {
 import { toast } from "sonner";
 
 export type Curriculum = Tables<"curriculums">;
+
+function slugify(title: string) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function uniqueSlug(title: string, existing: Curriculum[], excludeId?: string) {
+  const base = slugify(title) || "curriculum";
+  const taken = new Set(
+    existing.filter((c) => c.id !== excludeId).map((c) => c.slug),
+  );
+  if (!taken.has(base)) return base;
+  let i = 2;
+  while (taken.has(`${base}-${i}`)) i++;
+  return `${base}-${i}`;
+}
 
 async function fetchCurriculums(): Promise<Curriculum[]> {
   const { data, error } = await supabase
@@ -35,6 +54,38 @@ export function useCurriculums() {
   });
 }
 
+type FormState = {
+  title: string;
+  subtitle: string;
+  description: string;
+  duration: string;
+  prerequisites: string;
+  class_duration: string;
+  qa_session: string;
+};
+
+const emptyForm: FormState = {
+  title: "",
+  subtitle: "",
+  description: "",
+  duration: "",
+  prerequisites: "",
+  class_duration: "",
+  qa_session: "",
+};
+
+function toFormState(c: Curriculum): FormState {
+  return {
+    title: c.title,
+    subtitle: c.subtitle ?? "",
+    description: c.description ?? "",
+    duration: c.duration ?? "",
+    prerequisites: c.prerequisites ?? "",
+    class_duration: c.class_duration ?? "",
+    qa_session: c.qa_session ?? "",
+  };
+}
+
 export function CurriculumSelector({
   selectedId,
   onSelect,
@@ -47,7 +98,7 @@ export function CurriculumSelector({
 
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [title, setTitle] = useState("");
+  const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
 
   function invalidate() {
@@ -58,28 +109,38 @@ export function CurriculumSelector({
 
   function openCreate() {
     setEditingId(null);
-    setTitle("");
+    setForm(emptyForm);
     setOpen(true);
   }
 
   function openEdit(c: Curriculum) {
     setEditingId(c.id);
-    setTitle(c.title);
+    setForm(toFormState(c));
     setOpen(true);
   }
 
   async function handleSave() {
     setSaving(true);
+    const payload = {
+      title: form.title,
+      slug: uniqueSlug(form.title, curriculums, editingId ?? undefined),
+      subtitle: form.subtitle || null,
+      description: form.description || null,
+      duration: form.duration || null,
+      prerequisites: form.prerequisites || null,
+      class_duration: form.class_duration || null,
+      qa_session: form.qa_session || null,
+    };
     const { data, error } = editingId
       ? await supabase
           .from("curriculums")
-          .update({ title })
+          .update(payload)
           .eq("id", editingId)
           .select()
           .single()
       : await supabase
           .from("curriculums")
-          .insert({ title, sort_order: curriculums.length })
+          .insert({ ...payload, sort_order: curriculums.length })
           .select()
           .single();
     setSaving(false);
@@ -194,26 +255,109 @@ export function CurriculumSelector({
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingId ? "Edit curriculum" : "New curriculum"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-1.5">
-            <Label htmlFor="curriculum-title">Title</Label>
-            <Input
-              id="curriculum-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Become an AI Engineer"
-            />
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="curriculum-title">Title</Label>
+              <Input
+                id="curriculum-title"
+                value={form.title}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, title: e.target.value }))
+                }
+                placeholder="e.g. Become an AI Engineer"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="curriculum-subtitle">Subtitle (optional)</Label>
+              <Input
+                id="curriculum-subtitle"
+                value={form.subtitle}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, subtitle: e.target.value }))
+                }
+                placeholder="e.g. Generative AI + AI Agents + Automation Bootcamp"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="curriculum-description">
+                Hero description (optional)
+              </Label>
+              <Textarea
+                id="curriculum-description"
+                value={form.description}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, description: e.target.value }))
+                }
+                placeholder="The paragraph shown under the page title."
+              />
+            </div>
+
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Program details (all optional — only filled-in ones show)
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="curriculum-duration">Course duration</Label>
+                <Input
+                  id="curriculum-duration"
+                  value={form.duration}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, duration: e.target.value }))
+                  }
+                  placeholder="e.g. 10 weeks"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="curriculum-class-duration">
+                  Class duration
+                </Label>
+                <Input
+                  id="curriculum-class-duration"
+                  value={form.class_duration}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      class_duration: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g. 90 min, 2x/week"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="curriculum-prereq">Pre-requisites</Label>
+              <Input
+                id="curriculum-prereq"
+                value={form.prerequisites}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, prerequisites: e.target.value }))
+                }
+                placeholder="e.g. Basic Python"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="curriculum-qa">Q&amp;A session</Label>
+              <Input
+                id="curriculum-qa"
+                value={form.qa_session}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, qa_session: e.target.value }))
+                }
+                placeholder="e.g. Weekly live Q&A every Friday"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving || !title}>
+            <Button onClick={handleSave} disabled={saving || !form.title}>
               {saving ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>

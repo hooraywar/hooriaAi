@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CurriculumRouteImport } from './routes/curriculum'
+import { Route as CurriculumSlugRouteImport } from './routes/curriculum.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,43 @@ const CurriculumRoute = CurriculumRouteImport.update({
   path: '/curriculum',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CurriculumSlugRoute = CurriculumSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CurriculumRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/curriculum': typeof CurriculumRoute
+  '/curriculum': typeof CurriculumRouteWithChildren
+  '/curriculum/$slug': typeof CurriculumSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/curriculum': typeof CurriculumRoute
+  '/curriculum': typeof CurriculumRouteWithChildren
+  '/curriculum/$slug': typeof CurriculumSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/curriculum': typeof CurriculumRoute
+  '/curriculum': typeof CurriculumRouteWithChildren
+  '/curriculum/$slug': typeof CurriculumSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/curriculum'
+  fullPaths: '/' | '/admin' | '/curriculum' | '/curriculum/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/curriculum'
-  id: '__root__' | '/' | '/admin' | '/curriculum'
+  to: '/' | '/admin' | '/curriculum' | '/curriculum/$slug'
+  id: '__root__' | '/' | '/admin' | '/curriculum' | '/curriculum/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  CurriculumRoute: typeof CurriculumRoute
+  CurriculumRoute: typeof CurriculumRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -82,13 +91,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CurriculumRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/curriculum/$slug': {
+      id: '/curriculum/$slug'
+      path: '/$slug'
+      fullPath: '/curriculum/$slug'
+      preLoaderRoute: typeof CurriculumSlugRouteImport
+      parentRoute: typeof CurriculumRoute
+    }
   }
 }
+
+interface CurriculumRouteChildren {
+  CurriculumSlugRoute: typeof CurriculumSlugRoute
+}
+
+const CurriculumRouteChildren: CurriculumRouteChildren = {
+  CurriculumSlugRoute: CurriculumSlugRoute,
+}
+
+const CurriculumRouteWithChildren = CurriculumRoute._addFileChildren(
+  CurriculumRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  CurriculumRoute: CurriculumRoute,
+  CurriculumRoute: CurriculumRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

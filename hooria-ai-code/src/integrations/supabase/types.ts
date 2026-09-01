@@ -16,25 +16,70 @@ export type Database = {
     Tables: {
       curriculums: {
         Row: {
+          class_duration: string | null;
           created_at: string;
+          description: string | null;
+          duration: string | null;
           id: string;
           is_published: boolean;
+          prerequisites: string | null;
+          qa_session: string | null;
+          slug: string;
           sort_order: number;
+          subtitle: string | null;
           title: string;
         };
         Insert: {
+          class_duration?: string | null;
           created_at?: string;
+          description?: string | null;
+          duration?: string | null;
           id?: string;
           is_published?: boolean;
+          prerequisites?: string | null;
+          qa_session?: string | null;
+          slug: string;
           sort_order?: number;
+          subtitle?: string | null;
           title: string;
         };
         Update: {
+          class_duration?: string | null;
           created_at?: string;
+          description?: string | null;
+          duration?: string | null;
           id?: string;
           is_published?: boolean;
+          prerequisites?: string | null;
+          qa_session?: string | null;
+          slug?: string;
           sort_order?: number;
+          subtitle?: string | null;
           title?: string;
+        };
+        Relationships: [];
+      };
+      curriculum_preview_settings: {
+        Row: {
+          created_at: string;
+          eyebrow: string;
+          heading: string;
+          id: string;
+          is_visible: boolean;
+        };
+        Insert: {
+          created_at?: string;
+          eyebrow?: string;
+          heading?: string;
+          id?: string;
+          is_visible?: boolean;
+        };
+        Update: {
+          created_at?: string;
+          eyebrow?: string;
+          heading?: string;
+          id?: string;
+          is_visible?: boolean;
         };
         Relationships: [];
       };
@@ -219,6 +264,7 @@ export type Database = {
       services: {
         Row: {
           created_at: string;
+          curriculum_id: string | null;
           description: string;
           discount_percentage: number;
           icon: string;
@@ -232,6 +278,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          curriculum_id?: string | null;
           description: string;
           discount_percentage?: number;
           icon?: string;
@@ -245,6 +292,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          curriculum_id?: string | null;
           description?: string;
           discount_percentage?: number;
           icon?: string;
@@ -256,7 +304,15 @@ export type Database = {
           sort_order?: number;
           title?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "services_curriculum_id_fkey";
+            columns: ["curriculum_id"];
+            isOneToOne: false;
+            referencedRelation: "curriculums";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       user_roles: {
         Row: {

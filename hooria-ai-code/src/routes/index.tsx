@@ -80,6 +80,7 @@ type Service = {
   is_active: boolean;
   is_coming_soon: boolean;
   discount_percentage: number;
+  curriculum_id: string | null;
   sort_order: number;
 };
 
@@ -103,6 +104,12 @@ type CurriculumPreviewItem = {
   title: string;
   description: string;
   sort_order: number;
+};
+
+type CurriculumPreviewSettings = {
+  eyebrow: string;
+  heading: string;
+  is_visible: boolean;
 };
 
 type PortfolioItem = {
@@ -138,6 +145,19 @@ async function fetchServices(): Promise<Service[]> {
   return data ?? [];
 }
 
+// Maps a curriculum id to its slug, for published curricula only — used to
+// link a program card to the curriculum page it should open.
+async function fetchPublishedCurriculumSlugs(): Promise<
+  Record<string, string>
+> {
+  const { data, error } = await supabase
+    .from("curriculums")
+    .select("id, slug")
+    .eq("is_published", true);
+  if (error) throw error;
+  return Object.fromEntries((data ?? []).map((c) => [c.id, c.slug]));
+}
+
 async function fetchFaqs(): Promise<Faq[]> {
   const { data, error } = await supabase
     .from("faqs")
@@ -163,6 +183,16 @@ async function fetchCurriculumPreview(): Promise<CurriculumPreviewItem[]> {
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return data ?? [];
+}
+
+async function fetchCurriculumPreviewSettings(): Promise<CurriculumPreviewSettings | null> {
+  const { data, error } = await supabase
+    .from("curriculum_preview_settings")
+    .select("eyebrow, heading, is_visible")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 async function fetchPortfolioItems(): Promise<PortfolioItem[]> {
@@ -419,6 +449,10 @@ function Programs() {
     queryKey: ["services"],
     queryFn: fetchServices,
   });
+  const { data: curriculumSlugs = {} } = useQuery({
+    queryKey: ["curriculum-slugs"],
+    queryFn: fetchPublishedCurriculumSlugs,
+  });
   return (
     <section id="programs" className="py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -451,6 +485,9 @@ function Programs() {
                   const discounted = s.discount_percentage
                     ? discountedPriceLabel(s.price_label, s.discount_percentage)
                     : null;
+                  const curriculumSlug = s.curriculum_id
+                    ? curriculumSlugs[s.curriculum_id]
+                    : undefined;
                   const cardInner = (
                     <div
                       className={cn(
@@ -534,7 +571,7 @@ function Programs() {
                               )}
                             >
                               {discounted ?? s.price_label ?? "Contact us"}
-                              {s.is_highlighted && (
+                              {curriculumSlug && (
                                 <ArrowRight className="h-3.5 w-3.5" />
                               )}
                             </div>
@@ -548,8 +585,12 @@ function Programs() {
                       </div>
                     </div>
                   );
-                  return s.is_highlighted && !s.is_coming_soon ? (
-                    <Link to="/curriculum" className="block h-full">
+                  return curriculumSlug && !s.is_coming_soon ? (
+                    <Link
+                      to="/curriculum/$slug"
+                      params={{ slug: curriculumSlug }}
+                      className="block h-full"
+                    >
                       {cardInner}
                     </Link>
                   ) : (
@@ -740,15 +781,23 @@ function Curriculum() {
     queryKey: ["curriculum-preview"],
     queryFn: fetchCurriculumPreview,
   });
+  const { data: settings, isLoading: settingsLoading } = useQuery({
+    queryKey: ["curriculum-preview-settings"],
+    queryFn: fetchCurriculumPreviewSettings,
+  });
+
+  if (settingsLoading) return null;
+  if (settings && !settings.is_visible) return null;
+
   return (
     <section id="curriculum" className="py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="max-w-2xl mx-auto text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
-            Curriculum
+            {settings?.eyebrow || "Curriculum"}
           </p>
           <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
-            8 modules. 10 weeks. Zero fluff.
+            {settings?.heading || "8 modules. 10 weeks. Zero fluff."}
           </h2>
         </Reveal>
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

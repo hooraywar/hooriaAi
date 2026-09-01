@@ -53,6 +53,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useCurriculums } from "./CurriculumSelector";
 
 type Service = Tables<"services">;
 
@@ -115,6 +116,7 @@ const emptyForm: TablesInsert<"services"> = {
   is_active: true,
   is_coming_soon: false,
   discount_percentage: 0,
+  curriculum_id: null,
   sort_order: 0,
 };
 
@@ -133,6 +135,7 @@ export function ServicesManager() {
     queryKey: ["admin-services"],
     queryFn: fetchServices,
   });
+  const { data: curriculums = [] } = useCurriculums();
 
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -400,6 +403,14 @@ export function ServicesManager() {
                           </TableCell>
                           <TableCell className="font-medium">
                             {s.title}
+                            {s.curriculum_id && (
+                              <div className="mt-0.5 text-xs font-normal text-muted-foreground">
+                                Curriculum:{" "}
+                                {curriculums.find(
+                                  (c) => c.id === s.curriculum_id,
+                                )?.title ?? "—"}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>{s.price_label}</TableCell>
                           <TableCell>
@@ -511,6 +522,33 @@ export function ServicesManager() {
                   }
                 />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Linked curriculum</Label>
+              <Select
+                value={form.curriculum_id ?? "none"}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    curriculum_id: v === "none" ? null : v,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {curriculums.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Clicking this program on the site opens this curriculum's page.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
