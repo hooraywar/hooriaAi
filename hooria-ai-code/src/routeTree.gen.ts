@@ -13,6 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CurriculumRouteImport } from './routes/curriculum'
 import { Route as CurriculumSlugRouteImport } from './routes/curriculum.$slug'
+import { Route as CurriculumAiAppDevelopmentWithRagAgentsRouteImport } from './routes/curriculum.ai-app-development-with-rag-agents'
+import { Route as CurriculumBecomeAnAiEngineerRouteImport } from './routes/curriculum.become-an-ai-engineer'
+import { Route as CurriculumFoundationRouteImport } from './routes/curriculum.foundation'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +37,41 @@ const CurriculumSlugRoute = CurriculumSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => CurriculumRoute,
 } as any)
+const CurriculumAiAppDevelopmentWithRagAgentsRoute =
+  CurriculumAiAppDevelopmentWithRagAgentsRouteImport.update({
+    id: '/ai-app-development-with-rag-agents',
+    path: '/ai-app-development-with-rag-agents',
+    getParentRoute: () => CurriculumRoute,
+  } as any)
+const CurriculumBecomeAnAiEngineerRoute =
+  CurriculumBecomeAnAiEngineerRouteImport.update({
+    id: '/become-an-ai-engineer',
+    path: '/become-an-ai-engineer',
+    getParentRoute: () => CurriculumRoute,
+  } as any)
+const CurriculumFoundationRoute = CurriculumFoundationRouteImport.update({
+  id: '/foundation',
+  path: '/foundation',
+  getParentRoute: () => CurriculumRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/curriculum': typeof CurriculumRouteWithChildren
   '/curriculum/$slug': typeof CurriculumSlugRoute
+  '/curriculum/ai-app-development-with-rag-agents': typeof CurriculumAiAppDevelopmentWithRagAgentsRoute
+  '/curriculum/become-an-ai-engineer': typeof CurriculumBecomeAnAiEngineerRoute
+  '/curriculum/foundation': typeof CurriculumFoundationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/curriculum': typeof CurriculumRouteWithChildren
   '/curriculum/$slug': typeof CurriculumSlugRoute
+  '/curriculum/ai-app-development-with-rag-agents': typeof CurriculumAiAppDevelopmentWithRagAgentsRoute
+  '/curriculum/become-an-ai-engineer': typeof CurriculumBecomeAnAiEngineerRoute
+  '/curriculum/foundation': typeof CurriculumFoundationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +79,38 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/curriculum': typeof CurriculumRouteWithChildren
   '/curriculum/$slug': typeof CurriculumSlugRoute
+  '/curriculum/ai-app-development-with-rag-agents': typeof CurriculumAiAppDevelopmentWithRagAgentsRoute
+  '/curriculum/become-an-ai-engineer': typeof CurriculumBecomeAnAiEngineerRoute
+  '/curriculum/foundation': typeof CurriculumFoundationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/curriculum' | '/curriculum/$slug'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/curriculum'
+    | '/curriculum/$slug'
+    | '/curriculum/ai-app-development-with-rag-agents'
+    | '/curriculum/become-an-ai-engineer'
+    | '/curriculum/foundation'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/curriculum' | '/curriculum/$slug'
-  id: '__root__' | '/' | '/admin' | '/curriculum' | '/curriculum/$slug'
+  to:
+    | '/'
+    | '/admin'
+    | '/curriculum'
+    | '/curriculum/$slug'
+    | '/curriculum/ai-app-development-with-rag-agents'
+    | '/curriculum/become-an-ai-engineer'
+    | '/curriculum/foundation'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/curriculum'
+    | '/curriculum/$slug'
+    | '/curriculum/ai-app-development-with-rag-agents'
+    | '/curriculum/become-an-ai-engineer'
+    | '/curriculum/foundation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -98,15 +149,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CurriculumSlugRouteImport
       parentRoute: typeof CurriculumRoute
     }
+    '/curriculum/ai-app-development-with-rag-agents': {
+      id: '/curriculum/ai-app-development-with-rag-agents'
+      path: '/ai-app-development-with-rag-agents'
+      fullPath: '/curriculum/ai-app-development-with-rag-agents'
+      preLoaderRoute: typeof CurriculumAiAppDevelopmentWithRagAgentsRouteImport
+      parentRoute: typeof CurriculumRoute
+    }
+    '/curriculum/become-an-ai-engineer': {
+      id: '/curriculum/become-an-ai-engineer'
+      path: '/become-an-ai-engineer'
+      fullPath: '/curriculum/become-an-ai-engineer'
+      preLoaderRoute: typeof CurriculumBecomeAnAiEngineerRouteImport
+      parentRoute: typeof CurriculumRoute
+    }
+    '/curriculum/foundation': {
+      id: '/curriculum/foundation'
+      path: '/foundation'
+      fullPath: '/curriculum/foundation'
+      preLoaderRoute: typeof CurriculumFoundationRouteImport
+      parentRoute: typeof CurriculumRoute
+    }
   }
 }
 
 interface CurriculumRouteChildren {
   CurriculumSlugRoute: typeof CurriculumSlugRoute
+  CurriculumAiAppDevelopmentWithRagAgentsRoute: typeof CurriculumAiAppDevelopmentWithRagAgentsRoute
+  CurriculumBecomeAnAiEngineerRoute: typeof CurriculumBecomeAnAiEngineerRoute
+  CurriculumFoundationRoute: typeof CurriculumFoundationRoute
 }
 
 const CurriculumRouteChildren: CurriculumRouteChildren = {
   CurriculumSlugRoute: CurriculumSlugRoute,
+  CurriculumAiAppDevelopmentWithRagAgentsRoute:
+    CurriculumAiAppDevelopmentWithRagAgentsRoute,
+  CurriculumBecomeAnAiEngineerRoute: CurriculumBecomeAnAiEngineerRoute,
+  CurriculumFoundationRoute: CurriculumFoundationRoute,
 }
 
 const CurriculumRouteWithChildren = CurriculumRoute._addFileChildren(
