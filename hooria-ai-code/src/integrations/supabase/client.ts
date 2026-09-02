@@ -21,7 +21,10 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
     }
 
     headers.set('apikey', supabaseKey);
-    return fetch(input, { ...init, headers });
+    // Public content (curriculums, services, etc.) is edited live via the
+    // admin panel; a browser-cached response would keep showing stale data
+    // after an edit, so always hit the network for a fresh read.
+    return fetch(input, { ...init, headers, cache: 'no-store' });
   };
 }
 
