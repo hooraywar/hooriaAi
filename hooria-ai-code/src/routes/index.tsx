@@ -27,9 +27,6 @@ import {
   Server,
   Presentation,
   BrainCircuit,
-  Sun,
-  Moon,
-  Leaf,
   Github,
   ExternalLink,
 } from "lucide-react";
@@ -1291,77 +1288,10 @@ function Footer() {
   );
 }
 
-type ThemeMode = "dark" | "light" | "emerald";
-
-function applyTheme(mode: ThemeMode) {
-  const root = document.documentElement;
-  root.classList.toggle("light", mode === "light");
-  root.classList.toggle("emerald", mode === "emerald");
-}
-
-function ThemeToggle() {
-  const [theme, setTheme] = useState<ThemeMode>("dark");
-
-  useEffect(() => {
-    const stored = (typeof window !== "undefined" &&
-      localStorage.getItem("theme")) as ThemeMode | null;
-    const initial: ThemeMode = stored ?? "dark";
-    setTheme(initial);
-    applyTheme(initial);
-  }, []);
-
-  const toggle = () => {
-    const order: ThemeMode[] = ["dark", "light", "emerald"];
-    const next = order[(order.indexOf(theme) + 1) % order.length];
-    setTheme(next);
-    applyTheme(next);
-    try {
-      localStorage.setItem("theme", next);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const label =
-    theme === "dark"
-      ? "Switch to light mode"
-      : theme === "light"
-        ? "Switch to emerald mode"
-        : "Switch to dark mode";
-  const Icon = theme === "dark" ? Sun : theme === "light" ? Leaf : Moon;
-
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={label}
-      title={label}
-      className="fixed bottom-6 right-6 z-50 grid h-12 w-12 place-items-center rounded-full border border-border/70 bg-surface/80 text-foreground shadow-brand backdrop-blur-xl transition hover:scale-105 hover:border-brand-blue/60"
-    >
-      <Icon className="h-5 w-5" />
-    </button>
-  );
-}
-
 function HomePage() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  useEffect(() => {
-    const read = () =>
-      setTheme(
-        document.documentElement.classList.contains("light") ? "light" : "dark",
-      );
-    const observer = new MutationObserver(read);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    read();
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Toaster theme={theme} position="top-center" />
+      <Toaster theme="light" position="top-center" />
       <Nav />
       <main>
         <Hero />
@@ -1377,7 +1307,6 @@ function HomePage() {
         <Signup />
       </main>
       <Footer />
-      <ThemeToggle />
     </div>
   );
 }
