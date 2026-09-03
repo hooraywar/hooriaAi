@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,8 @@ import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -31,6 +33,7 @@ import {
 import { toast } from "sonner";
 
 type Item = Tables<"portfolio_items">;
+type SectionSettings = Tables<"portfolio_section_settings">;
 
 const ICONS = [
   "Wand2",
@@ -61,6 +64,140 @@ async function fetchItems(): Promise<Item[]> {
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return data ?? [];
+}
+
+async function fetchSectionSettings(): Promise<SectionSettings | null> {
+  const { data, error } = await supabase
+    .from("portfolio_section_settings")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+function SectionSettingsPanel() {
+  const queryClient = useQueryClient();
+  const { data: settingsRow } = useQuery({
+    queryKey: ["admin-portfolio-section-settings"],
+    queryFn: fetchSectionSettings,
+  });
+  const [form, setForm] = useState({
+    eyebrow: "",
+    heading: "",
+    subheading: "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (settingsRow) {
+      setForm({
+        eyebrow: settingsRow.eyebrow,
+        heading: settingsRow.heading,
+        subheading: settingsRow.subheading,
+      });
+    }
+  }, [settingsRow]);
+
+  function invalidate() {
+    queryClient.invalidateQueries({
+      queryKey: ["admin-portfolio-section-settings"],
+    });
+    queryClient.invalidateQueries({ queryKey: ["portfolio-section-settings"] });
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    const { error } = settingsRow
+      ? await supabase
+          .from("portfolio_section_settings")
+          .update(form)
+          .eq("id", settingsRow.id)
+      : await supabase.from("portfolio_section_settings").insert(form);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Section text saved");
+    invalidate();
+  }
+
+  async function toggleVisible(value: boolean) {
+    const { error } = settingsRow
+      ? await supabase
+          .from("portfolio_section_settings")
+          .update({ is_visible: value })
+          .eq("id", settingsRow.id)
+      : await supabase
+          .from("portfolio_section_settings")
+          .insert({ is_visible: value });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(value ? "Section is now visible" : "Section is now hidden");
+    invalidate();
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-border/60 p-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+          Homepage section
+        </Label>
+        <div className="flex items-center gap-1.5">
+          <Switch
+            checked={settingsRow?.is_visible ?? true}
+            onCheckedChange={toggleVisible}
+          />
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            {(settingsRow?.is_visible ?? true) ? "On" : "Off"}
+          </span>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="portfolio-eyebrow">Eyebrow</Label>
+          <Input
+            id="portfolio-eyebrow"
+            value={form.eyebrow}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, eyebrow: e.target.value }))
+            }
+            placeholder="What You'll Ship"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="portfolio-heading">Heading</Label>
+          <Input
+            id="portfolio-heading"
+            value={form.heading}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, heading: e.target.value }))
+            }
+            placeholder="6 portfolio projects that get you hired"
+          />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="portfolio-subheading">Subheading</Label>
+        <Textarea
+          id="portfolio-subheading"
+          value={form.subheading}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, subheading: e.target.value }))
+          }
+          placeholder="These aren't tutorials. You'll deploy real code, on real infrastructure, with your name on it."
+        />
+      </div>
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save section text"}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export function PortfolioManager() {
@@ -120,10 +257,15 @@ export function PortfolioManager() {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        The "What You'll Ship" portfolio section on the homepage — heading text,
+        visibility, and cards.
+      </p>
+
+      <SectionSettingsPanel />
+
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          The "What You'll Ship" portfolio cards on the homepage.
-        </p>
+        <p className="text-sm text-muted-foreground">Portfolio cards.</p>
         <Button size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4" /> New Item
         </Button>

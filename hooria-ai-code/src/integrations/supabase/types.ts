@@ -237,6 +237,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      portfolio_section_settings: {
+        Row: {
+          created_at: string;
+          eyebrow: string;
+          heading: string;
+          id: string;
+          is_visible: boolean;
+          subheading: string;
+        };
+        Insert: {
+          created_at?: string;
+          eyebrow?: string;
+          heading?: string;
+          id?: string;
+          is_visible?: boolean;
+          subheading?: string;
+        };
+        Update: {
+          created_at?: string;
+          eyebrow?: string;
+          heading?: string;
+          id?: string;
+          is_visible?: boolean;
+          subheading?: string;
+        };
+        Relationships: [];
+      };
       faqs: {
         Row: {
           answer: string;

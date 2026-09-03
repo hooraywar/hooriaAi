@@ -118,6 +118,13 @@ type PortfolioItem = {
   sort_order: number;
 };
 
+type PortfolioSectionSettings = {
+  eyebrow: string;
+  heading: string;
+  subheading: string;
+  is_visible: boolean;
+};
+
 type InstructorHighlight = { icon: string; title: string; desc: string };
 type InstructorStat = { value: string; label: string };
 type InstructorProfile = {
@@ -210,6 +217,16 @@ async function fetchPortfolioItems(): Promise<PortfolioItem[]> {
   return data ?? [];
 }
 
+async function fetchPortfolioSectionSettings(): Promise<PortfolioSectionSettings | null> {
+  const { data, error } = await supabase
+    .from("portfolio_section_settings")
+    .select("eyebrow, heading, subheading, is_visible")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 async function fetchInstructor(): Promise<InstructorProfile | null> {
   const { data, error } = await supabase
     .from("instructor")
@@ -278,6 +295,11 @@ function Nav() {
     queryFn: fetchCurriculumPreviewSettings,
   });
   const showCurriculumLink = curriculumSettings?.is_visible ?? true;
+  const { data: portfolioSettings } = useQuery({
+    queryKey: ["portfolio-section-settings"],
+    queryFn: fetchPortfolioSectionSettings,
+  });
+  const showPortfolioLink = portfolioSettings?.is_visible ?? true;
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl">
@@ -304,9 +326,11 @@ function Nav() {
           <a href="#instructor" className="hover:text-foreground transition">
             Instructor
           </a>
-          <a href="#portfolio" className="hover:text-foreground transition">
-            Portfolio
-          </a>
+          {showPortfolioLink && (
+            <a href="#portfolio" className="hover:text-foreground transition">
+              Portfolio
+            </a>
+          )}
 
           <a href="#faq" className="hover:text-foreground transition">
             FAQ
@@ -857,6 +881,14 @@ function Portfolio() {
     queryKey: ["portfolio-items"],
     queryFn: fetchPortfolioItems,
   });
+  const { data: settings, isLoading: settingsLoading } = useQuery({
+    queryKey: ["portfolio-section-settings"],
+    queryFn: fetchPortfolioSectionSettings,
+  });
+
+  if (settingsLoading) return null;
+  if (settings && !settings.is_visible) return null;
+
   return (
     <section id="portfolio" className="py-24 sm:py-32 relative overflow-hidden">
       <div
@@ -866,15 +898,14 @@ function Portfolio() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal className="max-w-2xl mx-auto text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-blue">
-            What You'll Ship
+            {settings?.eyebrow || "What You'll Ship"}
           </p>
           <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold">
-            <span className="text-gradient-brand">6 portfolio projects</span>{" "}
-            that get you hired
+            {settings?.heading || "6 portfolio projects that get you hired"}
           </h2>
           <p className="mt-4 text-muted-foreground">
-            These aren't tutorials. You'll deploy real code, on real
-            infrastructure, with your name on it.
+            {settings?.subheading ||
+              "These aren't tutorials. You'll deploy real code, on real infrastructure, with your name on it."}
           </p>
         </Reveal>
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -1192,6 +1223,11 @@ function Footer() {
     queryFn: fetchCurriculumPreviewSettings,
   });
   const showCurriculumLink = curriculumSettings?.is_visible ?? true;
+  const { data: portfolioSettings } = useQuery({
+    queryKey: ["portfolio-section-settings"],
+    queryFn: fetchPortfolioSectionSettings,
+  });
+  const showPortfolioLink = portfolioSettings?.is_visible ?? true;
 
   return (
     <footer className="border-t border-border/50 bg-surface/40">
@@ -1231,9 +1267,14 @@ function Footer() {
               >
                 Instructor
               </a>
-              <a href="#portfolio" className="hover:text-foreground transition">
-                Portfolio
-              </a>
+              {showPortfolioLink && (
+                <a
+                  href="#portfolio"
+                  className="hover:text-foreground transition"
+                >
+                  Portfolio
+                </a>
+              )}
               <a href="#faq" className="hover:text-foreground transition">
                 FAQ
               </a>
