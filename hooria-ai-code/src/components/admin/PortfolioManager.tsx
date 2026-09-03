@@ -214,7 +214,9 @@ export function PortfolioManager() {
 
   function openCreate() {
     setEditingId(null);
-    setForm(emptyForm);
+    const nextSortOrder =
+      items.length > 0 ? Math.max(...items.map((i) => i.sort_order)) + 1 : 0;
+    setForm({ ...emptyForm, sort_order: nextSortOrder });
     setOpen(true);
   }
 
@@ -377,17 +379,6 @@ export function PortfolioManager() {
                   placeholder="Week 2"
                 />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sort_order">Sort order</Label>
-              <Input
-                id="sort_order"
-                type="number"
-                value={form.sort_order}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))
-                }
-              />
             </div>
           </div>
           <DialogFooter>

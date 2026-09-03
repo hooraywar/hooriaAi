@@ -190,7 +190,11 @@ export function CurriculumPreviewManager() {
   function openCreate() {
     if (!curriculumId) return;
     setEditingId(null);
-    setForm(emptyForm(curriculumId));
+    const nextSortOrder =
+      modules.length > 0
+        ? Math.max(...modules.map((m) => m.sort_order)) + 1
+        : 0;
+    setForm({ ...emptyForm(curriculumId), sort_order: nextSortOrder });
     setOpen(true);
   }
 
@@ -327,32 +331,16 @@ export function CurriculumPreviewManager() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="module_number">Number</Label>
-                <Input
-                  id="module_number"
-                  value={form.module_number}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, module_number: e.target.value }))
-                  }
-                  placeholder="01"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sort_order">Sort order</Label>
-                <Input
-                  id="sort_order"
-                  type="number"
-                  value={form.sort_order}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      sort_order: Number(e.target.value),
-                    }))
-                  }
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="module_number">Number</Label>
+              <Input
+                id="module_number"
+                value={form.module_number}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, module_number: e.target.value }))
+                }
+                placeholder="01"
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="title">Title</Label>

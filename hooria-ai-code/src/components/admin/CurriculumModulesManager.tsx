@@ -118,7 +118,11 @@ export function CurriculumModulesManager() {
 
   function openCreate() {
     setEditingId(null);
-    setForm(emptyForm);
+    const nextSortOrder =
+      modules.length > 0
+        ? Math.max(...modules.map((m) => m.sort_order)) + 1
+        : 0;
+    setForm({ ...emptyForm, sort_order: nextSortOrder });
     setOpen(true);
   }
 
@@ -401,19 +405,6 @@ export function CurriculumModulesManager() {
                 }
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sort_order">Sort order</Label>
-              <Input
-                id="sort_order"
-                type="number"
-                className="w-32"
-                value={form.sort_order}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))
-                }
-              />
-            </div>
-
             <div className="space-y-3 rounded-xl border border-border/60 p-4">
               <div className="flex items-center justify-between">
                 <Label>Sessions</Label>
