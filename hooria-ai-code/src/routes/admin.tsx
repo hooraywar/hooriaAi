@@ -240,7 +240,7 @@ function AdminPage() {
 
   return (
     <>
-      <Toaster theme="dark" position="top-center" />
+      <Toaster theme="light" position="top-center" />
       {session === undefined ? null : session === null ? (
         <LoginForm />
       ) : roleStatus === "checking" ? null : roleStatus === "admin" ? (
