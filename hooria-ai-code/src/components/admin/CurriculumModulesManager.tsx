@@ -1,6 +1,21 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -34,6 +49,38 @@ import { CurriculumSelector, useCurriculums } from "./CurriculumSelector";
 
 type ModuleRow = Tables<"curriculum_modules">;
 type Session = { title: string; points: string[] };
+
+function SortableModuleRow({
+  id,
+  children,
+}: {
+  id: string;
+  children: (drag: {
+    listeners: ReturnType<typeof useSortable>["listeners"];
+    attributes: ReturnType<typeof useSortable>["attributes"];
+  }) => ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+    >
+      {children({ listeners, attributes })}
+    </TableRow>
+  );
+}
 
 const ICONS = [
   "Sparkles",
@@ -178,6 +225,38 @@ export function CurriculumModulesManager() {
     queryClient.invalidateQueries({ queryKey: ["curriculum-modules"] });
   }
 
+  const dragSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !curriculumId) return;
+    const oldIndex = modules.findIndex((m) => m.id === active.id);
+    const newIndex = modules.findIndex((m) => m.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(modules, oldIndex, newIndex);
+    queryClient.setQueryData(
+      ["admin-curriculum-modules", curriculumId],
+      reordered,
+    );
+
+    const results = await Promise.all(
+      reordered.map((m, i) =>
+        supabase
+          .from("curriculum_modules")
+          .update({ sort_order: i })
+          .eq("id", m.id),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) toast.error(failed.error.message);
+
+    queryClient.invalidateQueries({ queryKey: ["admin-curriculum-modules"] });
+    queryClient.invalidateQueries({ queryKey: ["curriculum-modules"] });
+  }
+
   function addSession() {
     setForm((f) => ({
       ...f,
@@ -252,9 +331,14 @@ export function CurriculumModulesManager() {
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {curriculumId
-            ? "Modules for the selected curriculum."
-            : "Select or create a curriculum above to manage its modules."}
+          {curriculumId ? (
+            <>
+              Modules for the selected curriculum. Drag the{" "}
+              <GripVertical className="inline h-3.5 w-3.5" /> handle to reorder.
+            </>
+          ) : (
+            "Select or create a curriculum above to manage its modules."
+          )}
         </p>
         <Button size="sm" onClick={openCreate} disabled={!curriculumId}>
           <Plus className="h-4 w-4" /> New Module
@@ -265,6 +349,7 @@ export function CurriculumModulesManager() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8" />
               <TableHead>#</TableHead>
               <TableHead>Weeks</TableHead>
               <TableHead>Title</TableHead>
@@ -276,7 +361,7 @@ export function CurriculumModulesManager() {
             {isLoading && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center text-muted-foreground"
                 >
                   Loading...
@@ -286,39 +371,70 @@ export function CurriculumModulesManager() {
             {!isLoading && modules.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center text-muted-foreground"
                 >
                   No modules yet.
                 </TableCell>
               </TableRow>
             )}
-            {modules.map((m) => (
-              <TableRow key={m.id}>
-                <TableCell className="font-mono">{m.module_number}</TableCell>
-                <TableCell>{m.weeks}</TableCell>
-                <TableCell className="font-medium">{m.title}</TableCell>
-                <TableCell>
-                  {Array.isArray(m.sessions) ? m.sessions.length : 0}
-                </TableCell>
-                <TableCell className="text-right space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEdit(m)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(m.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {!isLoading && modules.length > 0 && (
+              <DndContext
+                sensors={dragSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={modules.map((m) => m.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {modules.map((m) => (
+                    <SortableModuleRow key={m.id} id={m.id}>
+                      {({ listeners, attributes }) => (
+                        <>
+                          <TableCell>
+                            <button
+                              type="button"
+                              className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+                              {...attributes}
+                              {...listeners}
+                            >
+                              <GripVertical className="h-4 w-4" />
+                            </button>
+                          </TableCell>
+                          <TableCell className="font-mono">
+                            {m.module_number}
+                          </TableCell>
+                          <TableCell>{m.weeks}</TableCell>
+                          <TableCell className="font-medium">
+                            {m.title}
+                          </TableCell>
+                          <TableCell>
+                            {Array.isArray(m.sessions) ? m.sessions.length : 0}
+                          </TableCell>
+                          <TableCell className="text-right space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEdit(m)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(m.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </>
+                      )}
+                    </SortableModuleRow>
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
           </TableBody>
         </Table>
       </div>
